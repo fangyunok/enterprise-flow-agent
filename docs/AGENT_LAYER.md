@@ -119,6 +119,12 @@ flowchart TB
 
 `plan_readonly_analysis` 本身不在规划白名单内：规划循环不能再调用规划，测试覆盖了这条自引用阻断。
 
+## 验证范围
+
+- 单元测试 46 项：`tests/test_planner.py` 24 项、`tests/test_agents.py` 22 项，另有 5 项网页端点测试。覆盖白名单阻断、循环检测、预算耗尽、作用域越权、跨员工身份隔离、冲突分级、角色超时与异常收敛、结论确定性。
+- 本机 `fixture` 测量（30 次规划 + 30 次越权阻断 + 20 次协作）见 [测量记录](../results/agent_layer_benchmark.md)：规划 3 次工具调用、回注上下文 1093 字符、P50 555.71 ms；越权提议全部以 `blocked_tool` 结束且执行工具调用为 0；协作 3 角色 7 次工具调用、P50 918.60 ms；20 次协作得到同一个 `content_digest`；全部 80 次运行后业务三表仍为 0 行。
+- CI 在脱离源码目录安装的 wheel 中另外运行 `plan` 与 `collaborate`，并对 `POST /api/plan`、`POST /api/agent-proposals` 发出真实请求，断言无业务写入。
+
 ## 已知边界
 
 - 确定性路由（`_route`）依据已抽取字段，不是模型自主编排；模型只参与 `qwen` / `api` 模式下的规划动作提议。

@@ -17,7 +17,7 @@
 - 区分单任务状态与长期偏好，支持用户明确保存和删除成本中心；提供本地网页、锁定依赖与脱离源码目录的安装验证。
 - 通过 114 项测试及 Ubuntu/Windows × Python 3.11/3.12 四组 GitHub CI，覆盖授权、制度版本、草稿确认、重复提交、真实 MCP、检查点恢复、HTTP 接口、只读规划的预算与越权阻断、多角色的作用域约束与冲突检测，并验证 wheel 在源码目录外运行。
 
-真实 Qwen 与模型质量仍待验证，不能写“Qwen 端到端验证通过”或宣称生产上线。模型驱动规划只做了协议层验证；`fixture` 模式下的确定性指标见 `results/agent_layer_benchmark.md`。跨系统 CI 记录见 [实际运行结果](https://github.com/fangyunok/enterprise-flow-agent/actions)。
+真实 Qwen 与模型质量仍待验证，不能写“Qwen 端到端验证通过”或宣称生产上线。模型驱动规划只做了协议层验证；`fixture` 模式下的确定性指标见 `results/agent_layer_benchmark.md`。跨系统 CI 记录见 [实际运行结果](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。
 
 ## 演示顺序
 
