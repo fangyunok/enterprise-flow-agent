@@ -1,16 +1,29 @@
-# EnterpriseFlow：企业业务流程编排与执行平台
+# EnterpriseFlow：企业业务流程 Agent 编排与执行平台
 
 [![EnterpriseFlow checks](https://github.com/fangyunok/enterprise-flow-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/fangyunok/enterprise-flow-agent/actions/workflows/ci.yml)
 
-一个 Python 工程项目：将任务解析、制度检索、业务工具调用、人工确认和事务提交组织成可恢复的工作流。第一条示范流程使用自建数据办理**模拟差旅费用申请**。
+**用 LangGraph 状态图编排企业业务流程的 Agent 平台**：把任务解析、制度检索、MCP 工具调用、人工确认与事务提交组织成可持久化、可中断、可恢复的工作流。第一条示范流程使用自建数据办理**模拟差旅费用申请**。
 
-模型负责提取用户明确提供的字段；身份、金额、制度适用范围和提交许可由服务端业务代码确定。`fixture` 模式可以离线完整演示，明确记录 `model_used=false`。
+模型只负责提取用户明确提供的字段；身份、租户、金额、制度适用范围与提交许可全部由服务端确定性业务代码裁定。`fixture` 模式可以离线完整演示，明确记录 `model_used=false`。
 
 网页同时提供只读制度问答：检索授权范围内的条款后，Qwen/API 模式生成带引用的答案，校验来源 ID 与原文片段并标记待人工核查；离线模式直接展示条款，不生成模型答案。
 
 ![EnterpriseFlow 本地业务工作台：本人订单、费用核算与适用条款](docs/assets/workbench.png)
 
 截图来自真实本地网页的审批暂停点，使用合成数据和固定流程模式。
+
+## 先看结论
+
+| 问题 | 结论 | 证据 |
+| --- | --- | --- |
+| 是否使用真实 Agent 编排框架 | LangGraph 1.2.12 真实 `StateGraph`；字段补充与审批通过 `interrupt` / `Command` 暂停与恢复，不是 if/else 流水线 | [架构](docs/ARCHITECTURE.md) |
+| 中断的任务能否恢复 | `AsyncSqliteSaver` 文件检查点，进程重启后按同一 `run_id` 读回原暂停点继续；`demo` 命令重复恢复后申请编号保持一致 | [验证记录](docs/EVALUATION.md) |
+| 模型能否越权 | 模型可输出字段仅限订单 ID、成本中心、日期、目的地、备注；身份、租户、金额与制度适用由服务端判定，MCP 工具服务器绑定服务端身份，参数中不含员工或租户字段 | [架构](docs/ARCHITECTURE.md) |
+| 旧确认与重复提交如何处理 | 草稿绑定版本号与 SHA256 内容摘要，编辑草稿或来源变化后旧确认立即失效；写事务 + 唯一约束 + 幂等键，重复提交返回同一编号 | [架构](docs/ARCHITECTURE.md) |
+| 记忆机制如何分层 | 长期偏好（用户显式保存的成本中心跨任务复用）与单任务短期状态分离；当前显式字段优先于已存偏好，偏好复用前再通过一次权限检查 | [架构](docs/ARCHITECTURE.md) |
+| 结果是否可验证 | 63 项测试（业务 20 / 编排 22 / 网页 16 / 问答 5）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37106022955) |
+
+> **能力边界**：真实 Qwen 端到端字段提取质量与制度问答的语义支持尚未验证；制度检索为关键词排序 + 结构化过滤，不是向量 RAG；流程为固定编排，不含模型自由规划与多智能体；演示身份、制度与订单均为自建合成数据。离线结果不代表生产环境表现。
 
 ## 五分钟运行
 
