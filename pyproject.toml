@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enterprise-flow-agent"
+version = "0.1.0"
+description = "Stateful enterprise workflow orchestration with LangGraph, MCP, and transactional execution"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{name = "EnterpriseFlow contributors"}]
+dependencies = [
+  "httpx==0.28.1",
+  "langgraph==1.2.12",
+  "langgraph-checkpoint-sqlite==3.1.1",
+  "mcp==2.2.0",
+  "pydantic==2.13.5",
+  "starlette==1.7.0",
+  "uvicorn==0.54.0",
+  "python-multipart==0.0.32",
+]
+
+[project.optional-dependencies]
+dev = ["build==1.4.2"]
+
+[project.scripts]
+enterprise-flow = "enterprise_flow.cli:main"
+
+[project.urls]
+Repository = "https://github.com/fangyunok/enterprise-flow-agent"
+Issues = "https://github.com/fangyunok/enterprise-flow-agent/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+enterprise_flow = ["data/*.json"]
