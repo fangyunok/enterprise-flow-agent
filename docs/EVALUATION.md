@@ -12,7 +12,7 @@
 - 最终 wheel 在源码目录外的新虚拟环境中安装，通过打包数据读取、真实离线流程及 HTTP 页面检查；登录 Alice 后调用真实本地只读制度问答接口，返回授权条款预览和引用。
 - wheel 内全部 Python 源码与种子 JSON 和当前 `src/enterprise_flow` 文件逐字节一致，包含最后的网页修改。未复用源码目录或 editable 安装执行独立安装检查。
 
-当前 CI 文件配置了 Ubuntu/Windows × Python 3.11/3.12 四组测试；尚未以配置文件存在作为远端 CI 通过证据。
+GitHub CI 的 Ubuntu/Windows × Python 3.11/3.12 四组检查全部通过，均完成 63 项测试、wheel 构建和源码目录外的安装运行验证。对应源码提交为 `f5b31e64745dc068ece18d0d2b2b88e00528d7ad`，见 [实际 CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37106022955)。该记录没有连接真实 Qwen。
 
 ## 测试评价的范围
 

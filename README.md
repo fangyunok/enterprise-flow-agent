@@ -85,7 +85,7 @@ $env:ENTERPRISE_QWEN_MODEL = 'qwen3:4b-instruct'
 .\.venv\Scripts\python.exe -m build --wheel
 ```
 
-本机 **63 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话和制度问答引用。验证记录与限制见 [EVALUATION.md](docs/EVALUATION.md)。CI 配置包含 Ubuntu/Windows × Python 3.11/3.12 四组检查；配置存在不等于线上运行结果已通过。
+**63 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话和制度问答引用。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37106022955)。验证范围与真实模型限制见 [EVALUATION.md](docs/EVALUATION.md)。
 
 本版是单机工程演示，使用合成制度、员工和订单。演示登录允许选择模拟身份，不构成正式企业认证。制度检索使用关键词与结构化过滤，未接入向量数据库；流程固定编排，未实现模型自由规划、多智能体或真实企业支付接口。
 
