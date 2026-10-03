@@ -252,6 +252,66 @@ class WebBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, 200)
         self.assertEqual(missing["citations"], [])
         self.assertEqual(missing["sources"], [])
+    AGENT_MESSAGE = ("我于 2026-10-09 至 2026-10-11 去广州出差，请处理 alice-hotel-001 和 alice-train-001，"
+                     "成本中心 CC-ALPHA-OPS。")
+
+    async def test_workbench_exposes_the_read_only_agent_card(self):
+        status, _, page = await self.request("/")
+        self.assertEqual(status, 200)
+        self.assertIn("多角色只读分析", page)
+        self.assertIn("不产生业务写入", page)
+        self.assertIn("agent-run", page)
+        self.assertIn("plan-run", page)
+
+    async def test_agent_endpoints_require_session_and_same_origin(self):
+        self.assertEqual((await self.request("/api/plan", "POST", {"message": self.AGENT_MESSAGE}))[0], 401)
+        self.assertEqual((await self.request("/api/agent-proposals", "POST", {"message": self.AGENT_MESSAGE}))[0], 401)
+        await self.login()
+        for path in ("/api/plan", "/api/agent-proposals"):
+            status, _, _ = await self.request(path, "POST", {"message": self.AGENT_MESSAGE},
+                                              headers={"origin": "http://evil.example"})
+            self.assertEqual(status, 403)
+
+    async def test_read_only_plan_endpoint_returns_a_trace_and_writes_nothing(self):
+        await self.login()
+        status, _, plan = await self.request("/api/plan", "POST", {"message": self.AGENT_MESSAGE})
+        self.assertEqual(status, 200, plan)
+        self.assertEqual(plan["stop_reason"], "goal_satisfied")
+        self.assertEqual([step["observation"]["tool"] for step in plan["steps"]],
+                         ["get_my_orders", "search_policy", "calculate_expense"])
+        self.assertEqual((plan["tool_calls"], plan["context_chars"] > 0), (3, True))
+        self.assertTrue(plan["read_only"])
+        self.assertFalse(plan["business_effects"])
+        self.assertEqual(plan["blocked_tools"], [])
+        self.assertEqual(plan["findings"]["calculate_expense"]["eligible_cents"], 123000)
+        self.assertEqual((await self.request("/api/drafts"))[2], [])
+
+    async def test_agent_proposal_endpoint_is_deterministic_and_writes_nothing(self):
+        await self.login()
+        status, _, proposal = await self.request("/api/agent-proposals", "POST", {"message": self.AGENT_MESSAGE})
+        self.assertEqual(status, 200, proposal)
+        second = (await self.request("/api/agent-proposals", "POST", {"message": self.AGENT_MESSAGE}))[2]
+        self.assertEqual(proposal["content_digest"], second["content_digest"])
+        self.assertEqual(proposal["roles"], ["order_reconciler", "policy_researcher", "cost_estimator"])
+        self.assertTrue(proposal["requires_human_confirmation"])
+        self.assertTrue(proposal["read_only"])
+        self.assertFalse(proposal["business_effects"])
+        self.assertFalse(proposal["blocked"])
+        self.assertEqual(proposal["conflicts"], [])
+        self.assertEqual(proposal["calculation"]["eligible_cents"], 123000)
+        self.assertEqual((await self.request("/api/drafts"))[2], [])
+
+    async def test_agent_endpoints_validate_input_without_writing(self):
+        await self.login()
+        status, _, error = await self.request("/api/plan", "POST", {"message": self.AGENT_MESSAGE, "max_steps": 99})
+        self.assertEqual((status, error["error"]), (400, "invalid_field"))
+        status, _, error = await self.request("/api/plan", "POST", {"message": self.AGENT_MESSAGE, "user_id": "bob"})
+        self.assertEqual((status, error["error"]), (400, "unexpected_fields"))
+        status, _, error = await self.request("/api/agent-proposals", "POST", {})
+        self.assertEqual((status, error["error"]), (400, "missing_fields"))
+        status, _, error = await self.request("/api/agent-proposals", "POST", {"message": "   "})
+        self.assertEqual((status, error["error"]), (400, "invalid_field"))
+        self.assertEqual((await self.request("/api/drafts"))[2], [])
 
 
 if __name__ == "__main__":

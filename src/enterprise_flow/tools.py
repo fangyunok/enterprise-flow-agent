@@ -77,18 +77,36 @@ def create_tool_server(service: EnterpriseService, principal: Principal) -> MCPS
         """Submit only a current confirmed draft using a transactional service."""
         return invoke(service.submit_draft, draft_id, expected_version, idempotency_key)
 
+    @server.tool()
+    async def plan_readonly_analysis(message: str, max_steps: int = 6, mode: str = "fixture") -> dict[str, Any]:
+        """Run a bounded read-only planning loop; it cannot create, confirm or submit."""
+        if mode not in {"fixture", "qwen", "api"} or type(max_steps) is not int or not 1 <= max_steps <= 20:
+            return {"ok": False, "error": {"code": "invalid_tool_input", "message": "Invalid planning bounds", "status_code": 400}}
+        from .planner import Planner
+        try:
+            result = await Planner(service, mode=mode, max_steps=max_steps).plan(principal, message)
+        except DomainError as exc:
+            return {"ok": False, "error": {"code": exc.code, "message": str(exc), "status_code": exc.status_code}}
+        except (ValueError, TypeError):
+            return {"ok": False, "error": {"code": "invalid_tool_input", "message": "Invalid planning input", "status_code": 400}}
+        return {"ok": True, "result": result.model_dump()}
+
     return server
 
 
 class ToolGateway:
     """Execute actual MCP calls with bounded await and structured validation."""
 
+    ALLOWED = frozenset({"get_my_orders", "search_policy", "get_preferences", "calculate_expense",
+                         "create_expense_draft", "confirm_expense_draft", "submit_expense",
+                         "plan_readonly_analysis"})
+
     def __init__(self, service: EnterpriseService, principal: Principal, timeout: float = 15) -> None:
         self.server = create_tool_server(service, principal)
         self.timeout = timeout
 
     async def call(self, name: str, arguments: dict[str, Any] | None = None) -> tuple[Any, dict[str, Any]]:
-        if name not in {"get_my_orders", "search_policy", "get_preferences", "calculate_expense", "create_expense_draft", "confirm_expense_draft", "submit_expense"}:
+        if name not in self.ALLOWED:
             raise DomainError("unknown_tool", "Tool is not in the business allowlist")
         started = time.perf_counter()
 

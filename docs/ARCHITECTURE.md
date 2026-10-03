@@ -35,6 +35,17 @@
 
 这版办理流程固定编排，模型在流程中用于字段提取。另有独立只读制度问答接口：先通过身份绑定 MCP 检索，再将授权条款交给 Qwen/API 生成受限 JSON，校验引用来源 ID、回答片段和来源原文片段。引用结构有效不等于语义被证据支持；返回 `semantic_support_verified=false` 与 `pending_review`，需要人工核查。问答不能确认或提交草稿，离线模式只返回条款预览。
 
-项目没有实现模型自由规划工具序列或多智能体。后续可在相同工具和事务边界内增加采购、资产领用等流程，但本版只实现一个示范流程。
+## 只读 Agent 层
+
+自由规划存在于**只读 Agent 层**：`planner.py` 的有界 ReAct 循环按需查询与核算，`agents.py` 的 Supervisor 派发三个最小权限角色并做交叉检查。它与业务写入完全隔离：
+
+- 只读工具集合与写入工具集合在模块导入时断言不相交；写入工具只由 LangGraph 审批流程经 MCP 调用。
+- 规划器对 reasoner 提议的每次调用做白名单校验。提议写入工具会被记录为 `blocked_tool` 并终止循环，**不产生任何 MCP 调用**。
+- 每个角色的工具箱在调用前比对角色作用域，越权返回 `tool_scope_violation`，不会落到业务服务。
+- 这一层的输出是 `Proposal`，带有 `read_only=true`、`business_effects=false`、`requires_human_confirmation=true`。写入路径仍然唯一，审批暂停点的语义没有改变。
+
+路由依据**已抽取字段**而非模型自主编排；模型只在 `qwen` / `api` 模式下参与规划动作的提议，且该路径只做了协议层验证。失败处理上，角色超时、模型不可用或未预期异常都被收敛为该角色的失败结论，不会中断 Supervisor 的汇总，也不会把工具错误转换成成功结论。细节与已知边界见 [AGENT_LAYER.md](AGENT_LAYER.md)。
+
+项目仍是单进程实现。后续可在相同工具和事务边界内增加采购、资产领用等流程，但本版只实现一个示范流程。
 
 参考：[LangGraph 持久化](https://docs.langchain.com/oss/python/langgraph/persistence)、[人工暂停与恢复](https://docs.langchain.com/oss/python/langgraph/interrupts)、[MCP 架构](https://modelcontextprotocol.io/docs/learn/architecture)。

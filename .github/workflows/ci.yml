@@ -92,6 +92,22 @@ jobs:
               assert report["model_used"] is False
               assert report["eligible_cents"] == 123000 and report["excess_cents"] == 6000
               print(json.dumps(report, indent=2))
+              agent_database = temporary / "agent.sqlite"
+              task = json.dumps({"order_ids": ["alice-hotel-001", "alice-train-001"], "cost_center": "CC-ALPHA-OPS", "start_date": "2026-10-09", "end_date": "2026-10-11"})
+              planning = subprocess.run(command + ["plan", "--db", str(agent_database), "--mode", "fixture", "--message", task], cwd=temporary, check=True, capture_output=True, text=True, encoding="utf-8")
+              plan_report = json.loads(planning.stdout)["plan"]
+              assert plan_report["stop_reason"] == "goal_satisfied", plan_report
+              assert plan_report["tool_calls"] == 3 and plan_report["blocked_tools"] == []
+              assert plan_report["read_only"] is True and plan_report["business_effects"] is False
+              assert plan_report["findings"]["calculate_expense"]["eligible_cents"] == 123000
+              collaboration = subprocess.run(command + ["collaborate", "--db", str(agent_database), "--mode", "fixture", "--message", task], cwd=temporary, check=True, capture_output=True, text=True, encoding="utf-8")
+              collaboration_report = json.loads(collaboration.stdout)
+              proposal = collaboration_report["proposal"]
+              assert proposal["roles"] == ["order_reconciler", "policy_researcher", "cost_estimator"]
+              assert proposal["blocked"] is False and proposal["conflicts"] == []
+              assert proposal["requires_human_confirmation"] is True and proposal["business_effects"] is False
+              assert collaboration_report["draft_count_after_analysis"] == 0
+              print("Installed wheel read-only planning and multi-agent analysis created no business writes")
               process = subprocess.Popen(command + ["serve", "--db", str(database), "--mode", "fixture", "--port", "7861"], cwd=temporary, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
               try:
                   ready = False
@@ -122,7 +138,19 @@ jobs:
                   assert answer["status"] == "source_preview" and answer["model_used"] is False
                   assert answer["sources"] and answer["citations"]
                   assert all(source["tenant_id"] == "alpha" for source in answer["sources"])
-                  print("Installed wheel fixture demo, live HTTP and authorized policy QA smoke passed")
+                  def draft_count():
+                      with opener.open("http://127.0.0.1:7861/api/drafts", timeout=5) as response:
+                          return len(json.loads(response.read().decode("utf-8")))
+                  drafts_before = draft_count()
+                  task = json.dumps({"order_ids": ["alice-hotel-001", "alice-train-001"], "cost_center": "CC-ALPHA-OPS", "start_date": "2026-10-09", "end_date": "2026-10-11"})
+                  proposal = post("/api/agent-proposals", {"message": task})
+                  assert proposal["read_only"] is True and proposal["business_effects"] is False
+                  assert proposal["requires_human_confirmation"] is True and proposal["blocked"] is False
+                  plan = post("/api/plan", {"message": task})
+                  assert plan["stop_reason"] == "goal_satisfied" and plan["tool_calls"] == 3
+                  assert plan["read_only"] is True and plan["business_effects"] is False
+                  assert draft_count() == drafts_before, "The agent layer must not create drafts"
+                  print("Installed wheel fixture demo, live HTTP, authorized policy QA and read-only agent layer smoke passed")
               finally:
                   process.terminate()
                   process.wait(timeout=10)
