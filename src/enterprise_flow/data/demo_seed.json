@@ -1,0 +1,41 @@
+{
+  "dataset_version": "enterprise-flow-demo-v1",
+  "notice": "All companies, identities, orders and policies are synthetic demo data. No financial approval or payment is performed.",
+  "users": [
+    {"user_id":"alice","tenant_id":"alpha","department_id":"operations","display_name":"Alice · 星河示例公司／运营"},
+    {"user_id":"bob","tenant_id":"alpha","department_id":"engineering","display_name":"Bob · 星河示例公司／研发"},
+    {"user_id":"carol","tenant_id":"alpha","department_id":"operations","display_name":"Carol · 星河示例公司／运营"},
+    {"user_id":"diana","tenant_id":"beta","department_id":"operations","display_name":"Diana · 远山示例公司／运营"},
+    {"user_id":"eric","tenant_id":"beta","department_id":"engineering","display_name":"Eric · 远山示例公司／研发"},
+    {"user_id":"frank","tenant_id":"beta","department_id":"operations","display_name":"Frank · 远山示例公司／运营"}
+  ],
+  "cost_centers": [
+    {"code":"CC-ALPHA-OPS","tenant_id":"alpha","department_scope":"operations","label":"运营成本中心"},
+    {"code":"CC-ALPHA-ENG","tenant_id":"alpha","department_scope":"engineering","label":"研发成本中心"},
+    {"code":"CC-ALPHA-GENERAL","tenant_id":"alpha","department_scope":"*","label":"通用成本中心"},
+    {"code":"CC-BETA-OPS","tenant_id":"beta","department_scope":"operations","label":"运营成本中心"},
+    {"code":"CC-BETA-ENG","tenant_id":"beta","department_scope":"engineering","label":"研发成本中心"}
+  ],
+  "policies": [
+    {"policy_id":"alpha-hotel-old","tenant_id":"alpha","department_scope":"*","kind":"hotel","city":"广州","version":"2026-01","effective_from":"2026-01-01","effective_to":"2026-10-01","clause_id":"HOTEL-1","title":"广州住宿标准（历史）","content":"示例制度：广州住宿按实际入住晚数，每晚限额350元；票据金额在限额内按实申请，超额不进入普通费用申请。须提供有效票据。","cap_cents":35000},
+    {"policy_id":"alpha-hotel-current","tenant_id":"alpha","department_scope":"*","kind":"hotel","city":"广州","version":"2026-10","effective_from":"2026-10-01","effective_to":null,"clause_id":"HOTEL-1","title":"广州住宿标准","content":"示例制度：广州住宿按实际入住晚数，每晚限额400元；票据金额在限额内按实申请，超额不进入普通费用申请。须提供有效票据。","cap_cents":40000},
+    {"policy_id":"alpha-hotel-engineering","tenant_id":"alpha","department_scope":"engineering","kind":"hotel","city":"广州","version":"2026-10","effective_from":"2026-10-01","effective_to":null,"clause_id":"HOTEL-ENG-1","title":"研发部门广州住宿例外","content":"示例制度：研发部门在广州住宿每晚限额500元，优先于同日通用条款；有效票据在限额内按实申请，超额不进入普通费用申请。","cap_cents":50000},
+    {"policy_id":"alpha-hotel-shenzhen","tenant_id":"alpha","department_scope":"*","kind":"hotel","city":"深圳","version":"2026-01","effective_from":"2026-01-01","effective_to":null,"clause_id":"HOTEL-2","title":"深圳住宿标准","content":"示例制度：深圳住宿每晚限额450元，有效票据在限额内按实申请，超额不进入普通费用申请。","cap_cents":45000},
+    {"policy_id":"alpha-train","tenant_id":"alpha","department_scope":"*","kind":"train","city":"*","version":"2026-01","effective_from":"2026-01-01","effective_to":null,"clause_id":"TRAIN-1","title":"铁路交通费用","content":"示例制度：已完成的铁路订单凭有效票据按实申请；订单须属于申请员工，取消订单不能申请。","cap_cents":null},
+    {"policy_id":"beta-hotel-old","tenant_id":"beta","department_scope":"*","kind":"hotel","city":"广州","version":"2026-01","effective_from":"2026-01-01","effective_to":"2026-10-01","clause_id":"HOTEL-1","title":"远山示例公司历史住宿标准","content":"示例制度：广州住宿每晚限额250元，有效票据在限额内按实申请，超额不进入普通费用申请。","cap_cents":25000},
+    {"policy_id":"beta-hotel-current","tenant_id":"beta","department_scope":"*","kind":"hotel","city":"广州","version":"2026-10","effective_from":"2026-10-01","effective_to":null,"clause_id":"HOTEL-1","title":"远山示例公司住宿标准","content":"示例制度：广州住宿每晚限额300元，有效票据在限额内按实申请，超额不进入普通费用申请。","cap_cents":30000},
+    {"policy_id":"beta-train","tenant_id":"beta","department_scope":"*","kind":"train","city":"*","version":"2026-01","effective_from":"2026-01-01","effective_to":null,"clause_id":"TRAIN-1","title":"远山示例公司铁路费用","content":"示例制度：已完成的本人铁路订单凭有效票据按实申请。","cap_cents":null}
+  ],
+  "orders": [
+    {"order_id":"alice-hotel-001","owner_id":"alice","tenant_id":"alpha","kind":"hotel","city":"广州","start_date":"2026-10-09","end_date":"2026-10-11","amount_cents":86000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"alice-train-001","owner_id":"alice","tenant_id":"alpha","kind":"train","city":"广州","start_date":"2026-10-09","end_date":"2026-10-09","amount_cents":43000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"alice-hotel-old","owner_id":"alice","tenant_id":"alpha","kind":"hotel","city":"广州","start_date":"2026-09-29","end_date":"2026-10-02","amount_cents":129000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"alice-no-receipt","owner_id":"alice","tenant_id":"alpha","kind":"train","city":"广州","start_date":"2026-10-09","end_date":"2026-10-09","amount_cents":20000,"currency":"CNY","receipt_valid":0,"status":"completed"},
+    {"order_id":"alice-cancelled","owner_id":"alice","tenant_id":"alpha","kind":"train","city":"广州","start_date":"2026-10-09","end_date":"2026-10-09","amount_cents":20000,"currency":"CNY","receipt_valid":1,"status":"cancelled"},
+    {"order_id":"bob-hotel-001","owner_id":"bob","tenant_id":"alpha","kind":"hotel","city":"广州","start_date":"2026-10-09","end_date":"2026-10-11","amount_cents":86000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"carol-train-001","owner_id":"carol","tenant_id":"alpha","kind":"train","city":"广州","start_date":"2026-10-09","end_date":"2026-10-09","amount_cents":33000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"diana-hotel-001","owner_id":"diana","tenant_id":"beta","kind":"hotel","city":"广州","start_date":"2026-10-09","end_date":"2026-10-11","amount_cents":86000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"eric-train-001","owner_id":"eric","tenant_id":"beta","kind":"train","city":"广州","start_date":"2026-10-09","end_date":"2026-10-09","amount_cents":21000,"currency":"CNY","receipt_valid":1,"status":"completed"},
+    {"order_id":"frank-train-001","owner_id":"frank","tenant_id":"beta","kind":"train","city":"广州","start_date":"2026-10-09","end_date":"2026-10-09","amount_cents":25000,"currency":"CNY","receipt_valid":1,"status":"completed"}
+  ]
+}
