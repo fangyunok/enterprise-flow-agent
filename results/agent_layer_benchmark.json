@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-03",
+  "platform": "Windows 11",
+  "python": "3.12.14",
+  "synthetic_data": true,
+  "planning": {
+    "runs": 30,
+    "stop_reason": "goal_satisfied",
+    "tool_calls_per_run": [
+      3
+    ],
+    "context_chars_min": 1093,
+    "context_chars_max": 1093,
+    "wall_ms_p50": 555.71,
+    "wall_ms_p95": 676.71,
+    "distinct_result_payloads": 1
+  },
+  "blocked_write": {
+    "runs": 30,
+    "proposed_tool": "submit_expense",
+    "stop_reasons": [
+      "blocked_tool"
+    ],
+    "executed_tool_calls": 0,
+    "wall_ms_p50": 33.34,
+    "wall_ms_p95": 38.53
+  },
+  "collaboration": {
+    "runs": 20,
+    "roles": 3,
+    "tool_calls_per_run": [
+      7
+    ],
+    "wall_ms_p50": 918.6,
+    "wall_ms_p95": 1122.26,
+    "distinct_content_digests": 1
+  },
+  "business_writes_after_all_runs": {
+    "drafts": 0,
+    "confirmations": 0,
+    "submissions": 0
+  },
+  "planning_allowlist_excludes_write_tools": true,
+  "agent_scopes_exclude_write_tools": true
+}

@@ -79,6 +79,29 @@ async def _demo(path: Path, mode: str) -> dict:
     }
 
 
+DEMO_MESSAGE = ("我于 2026-10-09 至 2026-10-11 去广州出差，请处理 alice-hotel-001 和 alice-train-001，"
+                "成本中心 CC-ALPHA-OPS。")
+
+
+async def _plan(path: Path, mode: str, message: str, max_steps: int) -> dict:
+    from .planner import Planner
+    service = _service(path)
+    principal = service.authenticate_demo("alice")
+    result = await Planner(service, mode=mode, max_steps=max_steps).plan(principal, message)
+    return {"notice": "只读规划：只调用查询与核算工具，不创建草稿、不确认、不提交。",
+            "plan": result.model_dump()}
+
+
+async def _collaborate(path: Path, mode: str, message: str, user: str) -> dict:
+    from .agents import Supervisor
+    service = _service(path)
+    principal = service.authenticate_demo(user)
+    proposal = await Supervisor(service, mode=mode).collaborate(principal, message)
+    drafts = len(service.list_drafts(principal))
+    return {"notice": "多角色只读分析：结论仅供核对，创建与提交仍在人工确认流程中完成。",
+            "proposal": proposal.model_dump(), "draft_count_after_analysis": drafts}
+
+
 async def _doctor(mode: str, timeout: int) -> dict:
     import httpx
     from .model import create_extractor
@@ -122,6 +145,16 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, choices=range(1, 65536), metavar="PORT", default=7861)
+    plan = commands.add_parser("plan", help="Run the bounded read-only ReAct planning loop")
+    plan.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    plan.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
+    plan.add_argument("--message", default=DEMO_MESSAGE)
+    plan.add_argument("--max-steps", type=int, choices=range(1, 21), metavar="STEPS", default=6)
+    collaborate = commands.add_parser("collaborate", help="Run the supervisor multi-agent analysis")
+    collaborate.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    collaborate.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
+    collaborate.add_argument("--message", default=DEMO_MESSAGE)
+    collaborate.add_argument("--user", default="alice")
     doctor = commands.add_parser("doctor", help="Check bundled fixtures and optional model catalog")
     doctor.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
     doctor.add_argument("--timeout", type=int, choices=range(1, 31), metavar="SECONDS", default=5)
@@ -132,6 +165,10 @@ def main(argv: list[str] | None = None) -> int:
             _print({"database": str(args.db.resolve()), "demo_user_count": len(service.list_demo_users()), "synthetic_data": True})
         elif args.command == "demo":
             _print(asyncio.run(_demo(args.db, args.mode)))
+        elif args.command == "plan":
+            _print(asyncio.run(_plan(args.db, args.mode, args.message, args.max_steps)))
+        elif args.command == "collaborate":
+            _print(asyncio.run(_collaborate(args.db, args.mode, args.message, args.user)))
         elif args.command == "serve":
             import uvicorn
             from .webapp import create_app
