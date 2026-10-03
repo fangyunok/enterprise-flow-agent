@@ -25,7 +25,7 @@
 | 记忆机制如何分层 | 长期偏好（用户显式保存的成本中心跨任务复用）与单任务短期状态分离；当前显式字段优先于已存偏好，偏好复用前再通过一次权限检查 | [架构](docs/ARCHITECTURE.md) |
 | Agent 能否自己决定调什么工具 | 可以，但在只读白名单内：有界 ReAct 循环按需查询与核算，步数、上下文与循环检测同时生效；对写入工具的提议在执行前被拦下，实测 30 次全部 `blocked_tool` 且工具调用为 0 | [Agent 层](docs/AGENT_LAYER.md) · [测量记录](results/agent_layer_benchmark.md) |
 | 多角色结论冲突时听谁的 | 三个最小权限角色分别产出结论，Supervisor 做交叉检查并按 blocking / warning 分级；条款同日多版本、制度缺口、订单不符合条件都会阻塞，订单数不一致只告警并以业务服务为准 | [Agent 层](docs/AGENT_LAYER.md) |
-| 结果是否可验证 | 114 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37106022955) |
+| 结果是否可验证 | 114 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475) |
 
 > **能力边界**：真实 Qwen 端到端字段提取质量与制度问答的语义支持尚未验证；模型驱动的规划路径只做了协议层验证，未做端到端质量评测；制度检索为关键词排序 + 结构化过滤，不是向量 RAG；演示身份、制度与订单均为自建合成数据。离线结果不代表生产环境表现。
 
@@ -109,7 +109,7 @@ $env:ENTERPRISE_QWEN_MODEL = 'qwen3:4b-instruct'
 .\.venv\Scripts\python.exe -m build --wheel
 ```
 
-**114 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断，以及多角色的作用域约束与冲突检测。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37106022955)。验证范围与真实模型限制见 [EVALUATION.md](docs/EVALUATION.md)。
+**114 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断，以及多角色的作用域约束与冲突检测。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。验证范围与真实模型限制见 [EVALUATION.md](docs/EVALUATION.md)。
 
 本版是单机工程演示，使用合成制度、员工和订单。演示登录允许选择模拟身份，不构成正式企业认证。制度检索使用关键词与结构化过滤，未接入向量数据库；Agent 层的路由依据已抽取字段而非模型自主编排，规划与协作都只能读；模型驱动的规划路径只做了协议层验证。
 
