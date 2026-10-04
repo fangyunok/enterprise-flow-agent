@@ -1,0 +1,97 @@
+# Retrieval and model services for the evaluation runs.
+#
+#   docker compose -f deploy/gpu/docker-compose.yml up -d
+#
+# Brings up Milvus (standalone, with its etcd and minio dependencies) plus two embedding sidecars:
+# BAAI/bge-m3 for dense retrieval and BAAI/bge-reranker-base for cross-encoder reranking. Qwen is
+# served separately by vLLM because its image is large and its GPU memory profile differs from the
+# embedders; see deploy/gpu/README.md.
+#
+# Requires the NVIDIA Container Toolkit so the embedders can use the GPU. Without it, switch
+# EMBED_DEVICE to cpu and expect a slower but identical evaluation.
+
+services:
+  etcd:
+    container_name: ef-etcd
+    image: quay.io/coreos/etcd:v3.5.18
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - etcd-data:/etcd
+    command: etcd -advertise-client-urls=http://127.0.0.1:2379 -listen-client-urls http://0.0.0.0:2379 --data-dir /etcd
+
+  minio:
+    container_name: ef-minio
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    environment:
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+    volumes:
+      - minio-data:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    ports:
+      - "9001:9001"
+
+  milvus:
+    container_name: ef-milvus
+    image: milvusdb/milvus:v2.5.4
+    command: ["milvus", "run", "standalone"]
+    environment:
+      - ETCD_ENDPOINTS=etcd:2379
+      - MINIO_ADDRESS=minio:9000
+      - MINIO_ACCESS_KEY_ID=minioadmin
+      - MINIO_SECRET_ACCESS_KEY=minioadmin
+    volumes:
+      - milvus-data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - etcd
+      - minio
+
+  bge-m3:
+    container_name: ef-bge-m3
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.7
+    environment:
+      - EMBEDDING_BACKEND=onnx
+      - ONNX_PRECISION=fp32
+    volumes:
+      - hf-cache:/data
+    ports:
+      - "8000:80"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  bge-reranker:
+    container_name: ef-bge-reranker
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.7
+    command: --model-id BAAI/bge-reranker-base
+    environment:
+      - EMBEDDING_BACKEND=onnx
+      - ONNX_PRECISION=fp32
+    volumes:
+      - hf-cache:/data
+    ports:
+      - "8080:80"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  etcd-data:
+  minio-data:
+  milvus-data:
+  hf-cache:

@@ -1,0 +1,50 @@
+[
+  {
+    "queries": 226,
+    "recall": {
+      "@1": 0.004424778761061947,
+      "@3": 0.7300884955752213,
+      "@5": 0.8982300884955752
+    },
+    "mrr": 0.41987989886219973,
+    "leaks": 0,
+    "empty_results": 0,
+    "latency_p50_ms": 224.94,
+    "scoped_pool_p50": 34.0,
+    "scoped_pool_max": 52,
+    "human_recall_at_1": 0.05555555555555555,
+    "wall_clock_s": 99.38,
+    "mode": "keyword",
+    "embedder": "keyword-only",
+    "reranker": "none",
+    "store": "none",
+    "indexed_documents": 0,
+    "corpus_clauses": 168,
+    "label": "A. 关键词基线（结构化过滤 + 字符命中排序）",
+    "unranked": 5
+  },
+  {
+    "queries": 226,
+    "recall": {
+      "@1": 0.01327433628318584,
+      "@3": 0.7699115044247787,
+      "@5": 0.8849557522123894
+    },
+    "mrr": 0.4169581401882287,
+    "leaks": 0,
+    "empty_results": 0,
+    "latency_p50_ms": 224.23,
+    "scoped_pool_p50": 34.0,
+    "scoped_pool_max": 52,
+    "human_recall_at_1": 0.0,
+    "wall_clock_s": 97.95,
+    "mode": "hybrid",
+    "embedder": "hash-ngram",
+    "reranker": "none",
+    "store": "local:faiss-flat-ip",
+    "indexed_documents": 176,
+    "corpus_clauses": 168,
+    "label": "B. 混合检索（hash n-gram 编码器，链路自证）",
+    "unranked": 5
+  }
+]

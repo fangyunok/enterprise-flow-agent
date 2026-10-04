@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enterprise-flow-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "Stateful enterprise workflow orchestration with LangGraph, MCP, and transactional execution"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -22,6 +22,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The retrieval pipeline degrades to the deterministic keyword path without these, so the base
+# install stays light and fixture mode keeps working on any machine.
+retrieval = [
+  "numpy>=2.0",
+  "faiss-cpu>=1.8",
+  "pymilvus>=2.5",
+  "sentence-transformers>=3.0",
+]
+api = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+]
 dev = ["build==1.4.2"]
 
 [project.scripts]

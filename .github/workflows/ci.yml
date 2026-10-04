@@ -31,9 +31,9 @@ jobs:
       - name: Install tested dependencies
         run: |
           python -m pip install -r requirements.lock.txt
-          python -m pip install -e ".[dev]"
+          python -m pip install -e ".[dev,retrieval,api]"
           python -m pip check
-      - name: Run business, MCP, LangGraph, and HTTP tests
+      - name: Run business, MCP, LangGraph, retrieval, and API tests
         run: python -m unittest discover -s tests -v
       - name: Verify bundled fixtures match source data
         shell: bash
@@ -80,6 +80,7 @@ jobs:
               venv.EnvBuilder(with_pip=True).create(environment)
               interpreter = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
               subprocess.run([str(interpreter), "-m", "pip", "install", "-r", str(repository / "requirements.lock.txt"), str(wheel)], check=True)
+              subprocess.run([str(interpreter), "-m", "pip", "install", ".[api]"], cwd=repository, check=True)
               command = [str(interpreter), "-m", "enterprise_flow"]
               subprocess.run(command + ["--help"], cwd=temporary, check=True)
               subprocess.run(command + ["doctor", "--mode", "fixture"], cwd=temporary, check=True)
@@ -154,4 +155,58 @@ jobs:
               finally:
                   process.terminate()
                   process.wait(timeout=10)
+
+              api_database = temporary / "api.sqlite"
+              api_process = subprocess.Popen(command + ["serve-api", "--db", str(api_database), "--port", "8001"], cwd=temporary, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+              try:
+                  ready = False
+                  for attempt in range(80):
+                      if api_process.poll() is not None:
+                          raise RuntimeError(api_process.stderr.read().decode("utf-8", errors="replace"))
+                      try:
+                          with urllib.request.urlopen("http://127.0.0.1:8001/health", timeout=1) as response:
+                              assert json.loads(response.read())["status"] == "ok"
+                              ready = True
+                              break
+                      except (urllib.error.URLError, TimeoutError):
+                          time.sleep(0.25)
+                  assert ready, "Installed wheel API service did not start"
+                  with urllib.request.urlopen("http://127.0.0.1:8001/openapi.json", timeout=5) as response:
+                      contract = json.loads(response.read())
+                  assert sorted(contract["paths"]) == ["/health", "/orders", "/policies", "/traces/{run_id}", "/workflows", "/workflows/{run_id}", "/workflows/{run_id}/resume"]
+
+                  def api_get(path, expected=200):
+                      opener_local = urllib.request.build_opener()
+                      try:
+                          with opener_local.open("http://127.0.0.1:8001" + path, timeout=10) as response:
+                              assert response.status == expected, path
+                              return json.loads(response.read())
+                      except urllib.error.HTTPError as error:
+                          assert error.code == expected, (path, error.code)
+                          return json.loads(error.read())
+
+                  def api_post(path, payload, expected=200):
+                      request = urllib.request.Request("http://127.0.0.1:8001" + path, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"}, method="POST")
+                      opener_local = urllib.request.build_opener()
+                      try:
+                          with opener_local.open(request, timeout=30) as response:
+                              assert response.status == expected, path
+                              return json.loads(response.read())
+                      except urllib.error.HTTPError as error:
+                          assert error.code == expected, (path, error.code)
+                          return json.loads(error.read())
+
+                  # Tenant isolation has to hold over HTTP exactly as it does in-process.
+                  alpha = api_get("/policies?user_id=bob&query=%E4%BD%8F%E5%AE%BF")
+                  beta = api_get("/policies?user_id=diana&query=%E4%BD%8F%E5%AE%BF")
+                  assert alpha["items"] and {row["tenant_id"] for row in alpha["items"]} == {"alpha"}
+                  assert beta["items"] and {row["tenant_id"] for row in beta["items"]} == {"beta"}
+                  assert api_get("/orders?user_id=unknown-identity", expected=401)["error"] == "identity_not_found"
+                  started = api_post("/workflows", {"user_id": "bob", "message": "apply an expense"}, expected=202)
+                  assert started["run_id"].startswith("run-") and started["status"] == "waiting_fields"
+                  assert api_get(f"/workflows/{started['run_id']}?user_id=diana", expected=404)["error"] == "run_not_found"
+                  print("Installed wheel API service, tenant isolation and cross-identity run protection smoke passed")
+              finally:
+                  api_process.terminate()
+                  api_process.wait(timeout=10)
           PY
