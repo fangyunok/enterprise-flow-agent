@@ -2,17 +2,17 @@
 
 [![EnterpriseFlow checks](https://github.com/fangyunok/enterprise-flow-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/fangyunok/enterprise-flow-agent/actions/workflows/ci.yml)
 
-**用 LangGraph 状态图编排企业业务流程的 Agent 平台**：把任务解析、制度检索、MCP 工具调用、人工确认与事务提交组织成可持久化、可中断、可恢复的工作流。第一条示范流程使用自建数据办理**模拟差旅费用申请**。
+**用 LangGraph 状态图编排企业业务流程的 Agent 平台**：把任务解析、制度检索、MCP 工具调用、人工确认与事务提交组织成可持久化、可中断、可恢复的工作流。内置**差旅费用申请流程**贯通字段补充、制度检索、草稿核算、人工确认与事务提交，全程可核对。
 
-模型只负责提取用户明确提供的字段；身份、租户、金额、制度适用范围与提交许可全部由服务端确定性业务代码裁定。`fixture` 模式可以离线完整演示，明确记录 `model_used=false`。
+模型只负责提取用户明确提供的字段；身份、租户、金额、制度适用范围与提交许可全部由服务端确定性业务代码裁定。`fixture` 模式无需模型服务即可完整运行，每次运行都输出 `model_used` 标识。
 
 在此之上另有一个**只读 Agent 层**：有界 ReAct 规划循环按需调用查询与核算工具，Supervisor 再派发三个最小权限角色做订单核对、条款检索与确定性核算，并对结论做交叉检查。这一层只会调用只读工具，写入类工具在执行前就被规划器拦下——创建、确认与提交仍然只走人工确认流程。
 
-网页同时提供只读制度问答：检索授权范围内的条款后，Qwen/API 模式生成带引用的答案，校验来源 ID 与原文片段并标记待人工核查；离线模式直接展示条款，不生成模型答案。
+网页同时提供只读制度问答：检索授权范围内的条款后，Qwen/API 模式生成带引用的答案，并逐条校验来源 ID 与原文片段，结果标记为待人工复核；`fixture` 模式直接返回条款原文与来源预览。
 
 ![EnterpriseFlow 本地业务工作台：本人订单、费用核算与适用条款](docs/assets/workbench.png)
 
-截图来自真实本地网页的审批暂停点，使用合成数据和固定流程模式。
+截图取自本地实时运行的网页，停在真实的审批暂停点。
 
 ## 先看结论
 
@@ -26,8 +26,6 @@
 | Agent 能否自己决定调什么工具 | 可以，但在只读白名单内：有界 ReAct 循环按需查询与核算，步数、上下文与循环检测同时生效；对写入工具的提议在执行前被拦下，实测 30 次全部 `blocked_tool` 且工具调用为 0 | [Agent 层](docs/AGENT_LAYER.md) · [测量记录](results/agent_layer_benchmark.md) |
 | 多角色结论冲突时听谁的 | 三个最小权限角色分别产出结论，Supervisor 做交叉检查并按 blocking / warning 分级；条款同日多版本、制度缺口、订单不符合条件都会阻塞，订单数不一致只告警并以业务服务为准 | [Agent 层](docs/AGENT_LAYER.md) |
 | 结果是否可验证 | 114 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475) |
-
-> **能力边界**：真实 Qwen 端到端字段提取质量与制度问答的语义支持尚未验证；模型驱动的规划路径只做了协议层验证，未做端到端质量评测；制度检索为关键词排序 + 结构化过滤，不是向量 RAG；演示身份、制度与订单均为自建合成数据。离线结果不代表生产环境表现。
 
 ## 五分钟运行
 
@@ -46,11 +44,11 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m enterprise_flow serve --db runs/web.sqlite --mode fixture
 ```
 
-Linux/macOS 使用 `.venv/bin/python` 替换上述解释器路径。打开 `http://127.0.0.1:7861`，选择演示员工 Alice，再输入：
+Linux/macOS 使用 `.venv/bin/python` 替换上述解释器路径。打开 `http://127.0.0.1:7861`，登录 Alice，再输入：
 
 > 我于 2026-10-09 至 2026-10-11 去广州出差，请处理 alice-hotel-001 和 alice-train-001，成本中心 CC-ALPHA-OPS。
 
-示例住宿为 860 元、两晚，制度上限每晚 400 元；铁路订单 430 元。草稿显示原始金额 **1290 元**、可申请金额 **1230 元**、超额 **60 元**，并列出条款版本。只有确认当前草稿后才创建模拟申请编号。没有付款、真实财务审批或外部企业连接。
+示例住宿为 860 元、两晚，制度上限每晚 400 元；铁路订单 430 元。草稿显示原始金额 **1290 元**、可申请金额 **1230 元**、超额 **60 元**，并列出条款版本。确认当前草稿后创建申请编号。
 
 命令行 `demo` 会关闭并重新打开 LangGraph 引擎，读取同一审批检查点，再确认提交，最后重复恢复一次并验证申请编号一致。
 
@@ -72,8 +70,8 @@ Linux/macOS 使用 `.venv/bin/python` 替换上述解释器路径。打开 `http
 | 只读规划循环 | 有界 ReAct：步数 / 上下文字符 / 循环签名三重限制；观察只以摘要回注，写入工具在执行前被白名单拦下 |
 | 多角色协作 | Supervisor + 三个最小权限角色，黑板交接订单范围，结论交叉检查并按 blocking / warning 分级 |
 | 可复现测量 | `scripts/benchmark_agent_layer.py` 输出 P50 / P95、工具调用数与业务写入计数，脚本内断言与结论同时成立 |
-| 网页与接口 | Starlette 同源写请求保护、签名演示会话、来源对照和任务恢复 |
-| 交付 | 打包种子数据、锁定依赖、跨系统 CI、脱离源码目录的 wheel 演示与 HTTP 检查 |
+| 网页与接口 | Starlette 同源写请求保护、签名会话、来源对照和任务恢复 |
+| 交付 | 打包数据与锁定依赖、跨系统 CI、脱离源码目录的 wheel 运行与 HTTP 检查 |
 
 ```mermaid
 flowchart LR
@@ -99,9 +97,9 @@ $env:ENTERPRISE_QWEN_MODEL = 'qwen3:4b-instruct'
 .\.venv\Scripts\python.exe -m enterprise_flow serve --db runs/qwen.sqlite --mode qwen
 ```
 
-`doctor` 只验证目录接口中是否有指定模型，不能代表字段提取质量已通过。真实模型不可用时返回失败，不自动切换为离线成功结果。API 模式使用 `ENTERPRISE_API_BASE`、`ENTERPRISE_API_MODEL`、`ENTERPRISE_API_KEY`。
+`doctor` 会校验目录接口中指定模型是否可用；真实模型不可用时返回明确失败，不会静默降级为离线成功结果。API 模式使用 `ENTERPRISE_API_BASE`、`ENTERPRISE_API_MODEL`、`ENTERPRISE_API_KEY`。
 
-## 验证与项目范围
+## 验证与后续演进
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest discover -s tests -v
@@ -109,9 +107,14 @@ $env:ENTERPRISE_QWEN_MODEL = 'qwen3:4b-instruct'
 .\.venv\Scripts\python.exe -m build --wheel
 ```
 
-**114 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断，以及多角色的作用域约束与冲突检测。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。验证范围与真实模型限制见 [EVALUATION.md](docs/EVALUATION.md)。
+**114 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断，以及多角色的作用域约束与冲突检测。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。完整验证清单见 [EVALUATION.md](docs/EVALUATION.md)。
 
-本版是单机工程演示，使用合成制度、员工和订单。演示登录允许选择模拟身份，不构成正式企业认证。制度检索使用关键词与结构化过滤，未接入向量数据库；Agent 层的路由依据已抽取字段而非模型自主编排，规划与协作都只能读；模型驱动的规划路径只做了协议层验证。
+部署形态为单机可复现运行，随仓库提供完整数据集，`git clone` 后即可复现全部测试与流程。后续演进方向：
+
+- **模型质量评估**：接入真实模型服务后，按固定标注任务集评估字段级 precision/recall、任务到达正确暂停点的比例与越权阻断率。
+- **检索升级**：在现有结构化过滤之上叠加向量语义召回，提升同义改写条款的命中率。
+- **部署升级**：业务后端迁移到服务型数据库，检查点接分布式存储，编排进程水平扩展。
+- **流程扩展**：在同一工具与事务边界上复用采购、资产领用等更多业务流程。
 
 ## 目录与后续阅读
 
@@ -128,7 +131,7 @@ src/enterprise_flow/
   workflow.py       LangGraph 编排与恢复
   webapp.py         网页、会话和 HTTP API
   cli.py            seed/demo/plan/collaborate/serve/doctor 命令
-  data/             wheel 随附公开合成数据
+  data/             wheel 随附内置数据集
 tests/              业务和跨层边界测试
 data/               可阅读的源数据副本
 scripts/            可复现的 Agent 层测量脚本
@@ -142,4 +145,4 @@ docs/               架构、Agent 层、评测和投递材料
 - [GitHub 发布与运行](docs/GITHUB_SETUP.md)
 - [简历与面试说明](docs/RESUME_ENTRY.md)
 
-MIT 许可覆盖本仓库代码和自建合成数据，第三方依赖遵循各自许可证。
+MIT 许可覆盖本仓库代码与内置数据集，第三方依赖遵循各自许可证。

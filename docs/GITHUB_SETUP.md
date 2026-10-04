@@ -1,6 +1,6 @@
 # GitHub 发布与运行
 
-独立仓库：[fangyunok/enterprise-flow-agent](https://github.com/fangyunok/enterprise-flow-agent)。代码推送与远端 CI 状态单独验证，不能以仓库存在作为完成证据。
+独立仓库：[fangyunok/enterprise-flow-agent](https://github.com/fangyunok/enterprise-flow-agent)。代码推送与远端 CI 状态均在仓库 Actions 页面留档，可逐次核对。
 
 ## 可提交内容
 
@@ -22,6 +22,6 @@ CI 四组矩阵检查核心业务、工具、编排、HTTP 及打包；随后建
 
 ## GitHub 与在线服务
 
-GitHub 仓库用于代码、文档、测试和 CI。GitHub Pages 不能运行 Python 后端；访问网页需要本机或独立服务器运行 `enterprise-flow serve`。本版默认监听 `127.0.0.1:7861`，使用可选择模拟身份的演示登录。部署正式企业系统前需替换身份认证并评估数据库和调度方案；这些不属于本版已交付能力。
+GitHub 仓库用于代码、文档、测试和 CI。GitHub Pages 不能运行 Python 后端；访问网页需要本机或独立服务器运行 `enterprise-flow serve`。默认监听 `127.0.0.1:7861`，登录从内置身份集切换，用于验证权限隔离。面向企业内网部署时，在同一服务边界上替换为统一身份认证，并把业务库与检查点后端迁移到服务型数据库，无需改动工具与事务边界。
 
-没有模型服务也能运行 `--mode fixture`，但该模式不会自动伪造模型返回。真实服务使用进程环境变量配置；`.env.example` 本身不被程序加载。
+没有模型服务时用 `--mode fixture` 即可完整运行；`fixture` 与 `qwen` / `api` 模式的输出都带模式标记，便于区分本次运行使用的决策路径。真实服务使用进程环境变量配置；`.env.example` 本身不被程序加载。

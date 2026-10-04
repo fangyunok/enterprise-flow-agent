@@ -62,7 +62,7 @@ class EnterpriseService:
         with self.database.transaction() as connection:
             row = connection.execute("SELECT * FROM users WHERE user_id=? AND active=1", (user_id,)).fetchone()
             if row is None:
-                raise DomainError("identity_not_found", "演示身份不存在。", 401)
+                raise DomainError("identity_not_found", "该身份不存在。", 401)
             return Principal(**{key: row[key] for key in Principal.model_fields})
 
     def _principal(self, connection, principal):
@@ -173,7 +173,7 @@ class EnterpriseService:
             elif order["kind"] == "train" and start == end:
                 nights, allocations = 1, [order["amount_cents"]]
             else:
-                raise DomainError("unsupported_order", "当前演示仅处理住宿和单日铁路订单。", 422)
+                raise DomainError("unsupported_order", "当前流程仅处理住宿与单日铁路订单。", 422)
             breakdown, eligible = [], 0
             for index, amount in enumerate(allocations):
                 day = (start + timedelta(days=index)).isoformat()

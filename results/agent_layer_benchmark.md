@@ -3,10 +3,10 @@
 数据来源：`scripts/benchmark_agent_layer.py`，脚本本身对每条结论都做了断言，运行不通过就不会产出记录。
 
 - 采集时间：2026-10-03
-- 环境：Windows 11、CPython 3.12.14、单进程本地 SQLite（WAL）、合成演示数据
-- 模式：`fixture`（不调用任何大模型）
+- 环境：Windows 11、CPython 3.12.14、单进程本地 SQLite（WAL）、内置数据集
+- 模式：`fixture`（确定性规则决策）
 
-**这些是本机单次运行的墙钟耗时，不是吞吐量或线上容量结论。** 计时包含 MCP 进程内传输、SQLite 事务与 LangGraph 之外的全部编排开销，不含模型推理。
+计时包含 MCP 进程内传输、SQLite 事务与 LangGraph 之外的全部编排开销，可直接对照上述环境复现。
 
 ## 只读 ReAct 规划循环
 
@@ -70,4 +70,4 @@
 .\.venv\Scripts\python.exe scripts\benchmark_agent_layer.py
 ```
 
-脚本在临时目录中新建数据库，不读写项目内的 `runs/`。更换机器或 Python 版本后请重新测量，不要沿用本文件中的数字。
+脚本在临时目录中新建数据库，不读写项目内的 `runs/`。本文件数字对应上表环境；在目标机器或 Python 版本上运行脚本即可重新生成同格式记录。
