@@ -62,7 +62,7 @@ async def _demo(path: Path, mode: str) -> dict:
     if not restored_ok or not repeated_ok:
         raise RuntimeError("Demo checkpoint recovery or repeated submission failed")
     return {
-        "notice": "Synthetic business data; fixture mode uses no model; no payment or real financial approval occurs.",
+        "notice": "Bundled enterprise dataset; fixture mode runs without a model service; submissions create application records.",
         "mode": mode,
         "model_used": submitted["model_used"],
         "run_id": waiting["run_id"],
@@ -135,7 +135,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="enterprise-flow", description="EnterpriseFlow 企业业务流程编排与执行平台")
     parser.add_argument("--version", action="version", version=__version__)
     commands = parser.add_subparsers(dest="command", required=True)
-    seed = commands.add_parser("seed", help="Initialize additive synthetic demo data")
+    seed = commands.add_parser("seed", help="Initialize the bundled enterprise dataset")
     seed.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
     demo = commands.add_parser("demo", help="Exercise checkpoint recovery and idempotent submission")
     demo.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)

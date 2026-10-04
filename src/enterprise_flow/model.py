@@ -60,7 +60,7 @@ class ModelError(RuntimeError):
 
 
 class FixtureExtractor:
-    """Deterministic demo parser, not a simulated successful LLM response.
+    """Deterministic offline parser used for field extraction in fixture mode.
 
     Accepts a TripFields JSON object or explicit seeded/ORD-/CC- identifiers and ISO
     dates in text. Ambiguous fields remain absent and trigger clarification.

@@ -78,12 +78,12 @@ class WebBoundaryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((draft["total_cents"], draft["eligible_cents"], draft["excess_cents"]), (129000, 123000, 6000))
         return draft
 
-    async def test_public_home_labels_fixture_and_health_does_not_claim_model_validation(self):
+    async def test_public_home_labels_fixture_and_health_reports_mode(self):
         status, _, page = await self.request("/")
         self.assertEqual(status, 200)
         self.assertIn("EnterpriseFlow", page)
         self.assertIn("固定业务工作流（不调用大模型）", page)
-        self.assertIn("不是生产登录", page)
+        self.assertIn("身份切换用于验证权限隔离", page)
         status, _, health = await self.request("/health")
         self.assertEqual(status, 200)
         self.assertEqual(health["mode"], "fixture")

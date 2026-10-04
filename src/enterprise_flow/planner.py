@@ -242,7 +242,7 @@ class HttpReasoner:
             "response_format": {"type": "json_object"},
             "messages": [
                 {"role": "system", "content": (
-                    "You plan a bounded ReAct loop for a synthetic enterprise expense task. "
+                    "You plan a bounded ReAct loop for an enterprise expense task. "
                     "Choose exactly one read-only tool per turn, or finish. "
                     "Tools available: " + json.dumps(tool_signatures, ensure_ascii=False) + ". "
                     "You may NOT create, confirm, submit or approve anything; no such tool exists for you. "
