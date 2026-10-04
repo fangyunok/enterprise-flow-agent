@@ -19,7 +19,7 @@
 - 建立标注集驱动的质量门禁：27 条用例覆盖显式标识、缺失字段、格式噪声、身份伪造与提示注入，输出字段级 P/R/F1、幻觉字段数与弃答率，评测调用与线上同一提取器。
 - 通过 182 项测试及 Ubuntu/Windows × Python 3.11/3.12 四组 GitHub CI，覆盖授权、制度版本、草稿确认、重复提交、真实 MCP、检查点恢复、HTTP 接口、检索权限边界、只读规划的预算与越权阻断、多角色的作用域约束与冲突检测，并验证 wheel 在源码目录外运行。
 
-检索与抽取的评测记录见 `results/retrieval_eval.md` 与 `results/model_eval.md`；`fixture` 模式下的确定性指标见 `results/agent_layer_benchmark.md`。跨系统 CI 记录见 [实际运行结果](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。
+检索与抽取的评测记录见 `results/retrieval_eval.md` 与 `results/model_eval.md`；`fixture` 模式下的确定性指标见 `results/agent_layer_benchmark.md`。跨系统 CI 记录见 [实际运行结果](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775)。
 
 ## 演示顺序
 

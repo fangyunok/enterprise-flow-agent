@@ -29,7 +29,7 @@
 | 检索后端是否可替换 | 向量库本地 FAISS 与 Milvus 同一套接口，编码器支持本地 sentence-transformers 与 OpenAI 兼容 HTTP 服务，reranker 支持本地交叉编码器与 TEI `/rerank`；未配置模型服务时保持关键词路径 | [GPU 部署](deploy/gpu/README.md) |
 | 模型抽取质量怎么衡量 | 27 条人工标注用例覆盖显式标识、缺失字段、格式噪声、身份伪造与提示注入，输出字段级 P/R/F1、幻觉字段数与弃答率；评测调用与线上相同的 `HttpExtractor` | [模型评测](results/model_eval.md) |
 | 有没有服务化与可观测性 | `serve-api` 提供 FastAPI + OpenAPI 契约、异步任务提交与依赖就绪检查；每次运行记录各阶段决策点、耗时分布与 token 用量，费率由配置注入 | [架构](docs/ARCHITECTURE.md) |
-| 结果是否可验证 | 182 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22 / 检索 30 / 可观测性 17 / API 21）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475) |
+| 结果是否可验证 | 182 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22 / 检索 30 / 可观测性 17 / API 21）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775) |
 
 ## 五分钟运行
 
@@ -125,7 +125,7 @@ $env:ENTERPRISE_RERANK_MODEL = 'BAAI/bge-reranker-base'
 .\.venv\Scripts\python.exe -m build --wheel
 ```
 
-**182 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断、多角色的作用域约束与冲突检测、检索链路的权限边界与降级路径、trace 与成本核算，以及 API 契约与跨身份访问拒绝。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。完整验证清单见 [EVALUATION.md](docs/EVALUATION.md)。
+**182 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断、多角色的作用域约束与冲突检测、检索链路的权限边界与降级路径、trace 与成本核算，以及 API 契约与跨身份访问拒绝。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775)。完整验证清单见 [EVALUATION.md](docs/EVALUATION.md)。
 
 评测脚本与线上代码同源，可直接作为质量门禁：
 

@@ -13,9 +13,9 @@
 - 最终 wheel 在源码目录外的新虚拟环境中安装，通过打包数据读取、真实离线流程及 HTTP 页面检查；登录 Alice 后调用真实本地只读制度问答接口，返回授权条款预览和引用。
 - wheel 内全部 Python 源码与种子 JSON 和当前 `src/enterprise_flow` 文件逐字节一致，包含最后的网页修改，并直接以独立安装包完成验证。
 
-GitHub CI 的 Ubuntu/Windows × Python 3.11/3.12 四组检查全部通过，均完成测试套件、wheel 构建和源码目录外的安装运行验证。同一提交 `ddf3d1f` 在 Ubuntu/3.12 上运行 114 项测试耗时 8.090 秒，与 Windows 本机的耗时差异来自文件系统与子进程开销，并非代码路径差异。见 [实际 CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37118933475)。
+GitHub CI 的 Ubuntu/Windows × Python 3.11/3.12 四组检查全部通过，均完成 182 项测试、wheel 构建和源码目录外的安装运行验证。同一版本在 Ubuntu/3.12 上运行 182 项测试耗时 9.391 秒，与 Windows 本机的 268.429 秒差异来自文件系统与子进程开销，并非代码路径差异。见 [实际 CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775)。
 
-CI 的 wheel 冒烟检查在安装后的独立环境中另外调用了 `plan` 与 `collaborate`，并对网页端点 `POST /api/plan`、`POST /api/agent-proposals` 发出真实请求，断言返回 `read_only=true`、`business_effects=false`、`blocked=false`，且请求前后草稿数量不变。日志中对应输出为 `Installed wheel read-only planning and multi-agent analysis created no business writes`。
+CI 的 wheel 冒烟检查在安装后的独立环境中调用 `plan` 与 `collaborate`，并对网页端点 `POST /api/plan`、`POST /api/agent-proposals` 发出真实请求，断言返回 `read_only=true`、`business_effects=false`、`blocked=false`，且请求前后草稿数量不变。本次新增 `serve-api` 的真实进程检查：读取 OpenAPI 契约并核对 7 个端点路径，验证 `bob` 与 `diana` 的检索结果分别只落在 `alpha` 与 `beta` 租户，未注册身份返回 401，跨身份读取任务返回 404。日志中对应输出为 `Installed wheel read-only planning and multi-agent analysis created no business writes` 与 `Installed wheel API service, tenant isolation and cross-identity run protection smoke passed`。
 
 ## 检索质量
 
