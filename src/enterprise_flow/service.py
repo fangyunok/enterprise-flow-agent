@@ -34,9 +34,30 @@ def _version(value):
 
 
 class EnterpriseService:
-    def __init__(self, database_path: Path):
+    def __init__(self, database_path: Path, retriever=None):
         self.database = Database(database_path)
         self.database_path = self.database.path
+        self.retriever = retriever
+
+    @property
+    def retrieval_mode(self) -> str:
+        return self.retriever.mode if self.retriever is not None else "keyword"
+
+    def _index_policies(self, connection):
+        """Index the whole policy table once per content change.
+
+        Indexing is not authorization: the corpus is embedded so recall can rank it, while every
+        query still intersects the vector results with the scoped SQL rows the caller may read.
+        """
+        if self.retriever is None or not self.retriever.vector_enabled:
+            return 0
+        rows = [dict(row) for row in connection.execute("SELECT * FROM policies ORDER BY policy_id")]
+        return self.retriever.refresh(rows)
+
+    def refresh_index(self):
+        """Rebuild the vector index on demand (CLI ``index`` command and evaluation scripts)."""
+        with self.database.transaction() as connection:
+            return self._index_policies(connection)
 
     def seed_demo(self):
         from .resources import data_path
@@ -91,12 +112,19 @@ class EnterpriseService:
         with self.database.transaction() as connection:
             self._principal(connection, principal)
             rows = self._policy_rows(connection, principal, business_date)
+            if self.retriever is not None and self.retriever.vector_enabled:
+                self._index_policies(connection)
         # Scope/date filtering occurs in SQL before any ranking/model context.
+        if self.retriever is not None and self.retriever.vector_enabled:
+            recalled = self.retriever.search(rows, query)
+            if recalled:
+                return recalled
         terms = set(re.findall(r"[a-zA-Z]+|[\u4e00-\u9fff]", query.casefold()))
         if terms:
             for row in rows:
                 text = (row["title"] + row["content"] + row["kind"]).casefold()
                 row["retrieval_score"] = sum(term in text for term in terms)
+                row["retrieval_path"] = "keyword"
             rows = sorted(rows, key=lambda row: (-row["retrieval_score"], row["policy_id"]))
             rows = [row for row in rows if row["retrieval_score"] > 0]
         return rows[:10]

@@ -145,6 +145,12 @@ def main(argv: list[str] | None = None) -> int:
     serve.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, choices=range(1, 65536), metavar="PORT", default=7861)
+    serve_api = commands.add_parser("serve-api", help="Start the FastAPI service with an OpenAPI contract")
+    serve_api.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
+    serve_api.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
+    serve_api.add_argument("--host", default="127.0.0.1")
+    serve_api.add_argument("--port", type=int, choices=range(1, 65536), metavar="PORT", default=8000)
+    serve_api.add_argument("--no-seed", action="store_true", help="skip loading the bundled dataset")
     plan = commands.add_parser("plan", help="Run the bounded read-only ReAct planning loop")
     plan.add_argument("--db", type=Path, default=DEFAULT_DB_PATH)
     plan.add_argument("--mode", choices=["fixture", "qwen", "api"], default="fixture")
@@ -173,6 +179,15 @@ def main(argv: list[str] | None = None) -> int:
             import uvicorn
             from .webapp import create_app
             uvicorn.run(create_app(database_path=args.db, model_mode=args.mode), host=args.host, port=args.port)
+        elif args.command == "serve-api":
+            try:
+                import uvicorn
+                from .api import ServiceSettings, create_api
+            except ImportError as exc:
+                raise RuntimeError("serve-api needs the api extra: pip install '.[api]'") from exc
+            uvicorn.run(
+                create_api(ServiceSettings(database_path=args.db, model_mode=args.mode, seed=not args.no_seed)),
+                host=args.host, port=args.port)
         elif args.command == "doctor":
             report = asyncio.run(_doctor(args.mode, args.timeout))
             _print(report)

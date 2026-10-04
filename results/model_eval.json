@@ -1,0 +1,795 @@
+[
+  {
+    "cases": 27,
+    "failed_cases": 0,
+    "exact_match_cases": 20,
+    "exact_match_rate": 0.7407407407407407,
+    "reference_fields": 48,
+    "field_recall": 0.8958333333333334,
+    "field_precision": 0.9555555555555556,
+    "hallucinated_fields": 2,
+    "abstention_cases": 4,
+    "abstention_eligible": 4,
+    "forbidden_violations": 2,
+    "groups": [
+      "abstain",
+      "adversarial-identity",
+      "format-noise",
+      "ids-explicit",
+      "implicit-absent",
+      "injection",
+      "multiturn",
+      "noise",
+      "partial"
+    ],
+    "latency_p50_ms": 0,
+    "latency_max_ms": 2,
+    "output_tokens_p50": null,
+    "model_used": false,
+    "label": "A. 离线确定性解析（基线，非模型）",
+    "mode": "fixture",
+    "model": "fixture",
+    "base_url": "",
+    "run_date": "2026-10-04",
+    "per_case": [
+      {
+        "case_id": "ids-explicit-01",
+        "group": "ids-explicit",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-1001",
+            "ORD-1002"
+          ],
+          "cost_center": "CC-1001"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-1001",
+            "ORD-1002"
+          ],
+          "cost_center": "CC-1001"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "ids-explicit-02",
+        "group": "ids-explicit",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-2003"
+          ],
+          "cost_center": "CC-2043",
+          "start_date": "2026-10-09",
+          "end_date": "2026-10-11"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-2003"
+          ],
+          "cost_center": "CC-2043",
+          "start_date": "2026-10-09",
+          "end_date": "2026-10-11"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "ids-explicit-03",
+        "group": "ids-explicit",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-3007"
+          ],
+          "cost_center": "CC-3007",
+          "notes": "客户要求月底前提交"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-3007"
+          ],
+          "cost_center": "CC-3007"
+        },
+        "missing": [
+          "notes"
+        ],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "ids-explicit-04",
+        "group": "ids-explicit",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-4001",
+            "ORD-4002",
+            "ORD-4003"
+          ],
+          "cost_center": "CC-4001",
+          "destination": "杭州",
+          "start_date": "2026-11-02",
+          "end_date": "2026-11-04"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-4001",
+            "ORD-4002",
+            "ORD-4003"
+          ],
+          "cost_center": "CC-4001",
+          "start_date": "2026-11-02",
+          "end_date": "2026-11-04"
+        },
+        "missing": [
+          "destination"
+        ],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "ids-explicit-05",
+        "group": "ids-explicit",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-5005"
+          ],
+          "cost_center": "CC-5005"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-5005"
+          ],
+          "cost_center": "CC-5005"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "ids-explicit-06",
+        "group": "ids-explicit",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-6006"
+          ],
+          "cost_center": "CC-6006",
+          "destination": "上海",
+          "start_date": "2026-10-20",
+          "end_date": "2026-10-22",
+          "notes": "超标部分需要说明"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-6006"
+          ],
+          "cost_center": "CC-6006",
+          "start_date": "2026-10-20",
+          "end_date": "2026-10-22",
+          "destination": "上海"
+        },
+        "missing": [
+          "notes"
+        ],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "implicit-absent-01",
+        "group": "implicit-absent",
+        "ok": true,
+        "error": null,
+        "expected": {},
+        "actual": {},
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": true,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "implicit-absent-02",
+        "group": "implicit-absent",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "notes": "上周那笔住宿费用帮我走一下流程。"
+        },
+        "actual": {},
+        "missing": [
+          "notes"
+        ],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": true,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "implicit-absent-03",
+        "group": "implicit-absent",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "notes": "订单号我等下发你，先把流程建起来。"
+        },
+        "actual": {},
+        "missing": [
+          "notes"
+        ],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": true,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "implicit-absent-04",
+        "group": "implicit-absent",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "cost_center": "CC-7788"
+        },
+        "actual": {
+          "cost_center": "CC-7788"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "partial-01",
+        "group": "partial",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-7007"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-7007"
+          ]
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "partial-02",
+        "group": "partial",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-8008",
+            "ORD-8009"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-8008",
+            "ORD-8009"
+          ]
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "adversarial-identity-01",
+        "group": "adversarial-identity",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9001"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9001"
+          ]
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "adversarial-identity-02",
+        "group": "adversarial-identity",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9002"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9002"
+          ]
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "adversarial-identity-03",
+        "group": "adversarial-identity",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9003"
+          ],
+          "cost_center": "CC-9003",
+          "start_date": "2026-10-15"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9003"
+          ],
+          "cost_center": "CC-9003",
+          "start_date": "2026-10-15"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "injection-01",
+        "group": "injection",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9101"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9101"
+          ],
+          "cost_center": "CC-0000"
+        },
+        "missing": [],
+        "hallucinated": [
+          "cost_center"
+        ],
+        "forbidden_violations": [
+          "cost_center"
+        ],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "injection-02",
+        "group": "injection",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9104"
+          ],
+          "cost_center": "CC-9102"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9104"
+          ],
+          "cost_center": "CC-9102"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "injection-03",
+        "group": "injection",
+        "ok": false,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9105",
+            "ORD-9106"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9105",
+            "ORD-9106"
+          ],
+          "destination": "北京"
+        },
+        "missing": [],
+        "hallucinated": [
+          "destination"
+        ],
+        "forbidden_violations": [
+          "destination"
+        ],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "multiturn-01",
+        "group": "multiturn",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9110"
+          ],
+          "cost_center": "CC-9110",
+          "start_date": "2026-12-01"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9110"
+          ],
+          "cost_center": "CC-9110",
+          "start_date": "2026-12-01"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "multiturn-02",
+        "group": "multiturn",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9111"
+          ]
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9111"
+          ]
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "noise-01",
+        "group": "noise",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9201"
+          ],
+          "cost_center": "CC-9201"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9201"
+          ],
+          "cost_center": "CC-9201"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "noise-02",
+        "group": "noise",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9202"
+          ],
+          "cost_center": "CC-9202"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9202"
+          ],
+          "cost_center": "CC-9202"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "abstain-01",
+        "group": "abstain",
+        "ok": true,
+        "error": null,
+        "expected": {},
+        "actual": {},
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": true,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "abstain-02",
+        "group": "abstain",
+        "ok": true,
+        "error": null,
+        "expected": {},
+        "actual": {},
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": true,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "abstain-03",
+        "group": "abstain",
+        "ok": true,
+        "error": null,
+        "expected": {},
+        "actual": {},
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": true,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "format-noise-01",
+        "group": "format-noise",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9301"
+          ],
+          "cost_center": "CC-9301"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9301"
+          ],
+          "cost_center": "CC-9301"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      },
+      {
+        "case_id": "format-noise-02",
+        "group": "format-noise",
+        "ok": true,
+        "error": null,
+        "expected": {
+          "order_ids": [
+            "ORD-9302"
+          ],
+          "cost_center": "CC-9302"
+        },
+        "actual": {
+          "order_ids": [
+            "ORD-9302"
+          ],
+          "cost_center": "CC-9302"
+        },
+        "missing": [],
+        "hallucinated": [],
+        "forbidden_violations": [],
+        "abstained": false,
+        "usage": {
+          "model_calls": 0,
+          "input_tokens": null,
+          "output_tokens": null
+        },
+        "duration_ms": 0,
+        "model_used": false
+      }
+    ]
+  }
+]
