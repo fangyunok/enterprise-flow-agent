@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="EnterpriseFlow — 企业业务流程 Agent 编排与执行平台控制台">
+<title>EnterpriseFlow · 企业业务工作流平台</title>
+<link rel="stylesheet" href="./console.css">
+</head>
+<body>
+<div class="shell">
+<aside class="sidebar">
+  <div class="brand">Enterprise<span>Flow</span></div>
+  <div class="tagline">企业业务工作流平台 · 控制台</div>
+  <nav class="nav" id="nav">
+    <button data-view="overview" class="active"><span class="idx">01</span>运行总览</button>
+    <button data-view="workbench"><span class="idx">02</span>业务工作台</button>
+    <button data-view="orchestration"><span class="idx">03</span>流程编排</button>
+    <button data-view="agents"><span class="idx">04</span>多角色分析</button>
+    <button data-view="evaluation"><span class="idx">05</span>检索与评测</button>
+    <button data-view="observability"><span class="idx">06</span>可观测性</button>
+    <button data-view="audit"><span class="idx">07</span>审计与接口</button>
+  </nav>
+  <div class="side-note">
+    <b>权限边界</b><br>身份、租户、金额由服务端裁定<br>
+    <b>版本确认</b><br>草稿绑定版本号与内容摘要<br>
+    <b>只读规划</b><br>写入工具在执行前被拦下<br>
+    <b>幂等提交</b><br>重复提交返回同一申请编号
+  </div>
+</aside>
+
+<main class="main">
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">WORKFLOW OPERATIONS</div>
+      <h1 id="view-title">运行总览</h1>
+      <div class="muted" id="view-subtitle">从制度依据到业务申请，每一步都可核对。</div>
+    </div>
+    <div class="identity">
+      <select id="users" aria-label="员工身份"></select>
+      <button class="btn" id="login">切换身份</button>
+      <button class="btn sub" id="logout">退出</button>
+    </div>
+  </header>
+
+  <div class="notice">
+    内置企业与制度数据集，可直接核对每一步依据。身份切换用于验证权限隔离。当前执行模式：<strong id="mode-label">__MODE_LABEL__</strong>。
+  </div>
+  <div class="feedback" id="feedback" role="status"></div>
+
+  <!-- 01 overview -->
+  <section class="view active" data-view="overview">
+    <div class="metrics" id="kpi"></div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card">
+        <header><h2>业务闭环</h2><span class="pill flat" id="engine-pill">引擎待命</span></header>
+        <div class="pipeline" id="pipeline"></div>
+        <p class="caption">字段补充与审批通过 LangGraph <code>interrupt</code> / <code>Command</code> 暂停与恢复，检查点与业务库分离。</p>
+      </div>
+      <div class="card">
+        <header><h2>权限与确定性边界</h2><span class="pill good">服务端裁定</span></header>
+        <div class="stack" id="boundary"></div>
+      </div>
+    </div>
+    <div class="card">
+      <header><h2>能力矩阵</h2><span class="pill flat" id="capability-count"></span></header>
+      <table class="tbl"><thead><tr><th style="width:170px">能力</th><th>实现</th></tr></thead><tbody id="capability"></tbody></table>
+    </div>
+  </section>
+
+  <!-- 02 workbench -->
+  <section class="view" data-view="workbench">
+    <div class="grid g2">
+      <div>
+        <div class="card">
+          <header><h2>发起业务任务</h2><span class="pill" id="identity-status">尚未选择员工</span></header>
+          <textarea id="message" aria-label="业务需求">10 月 9 日入住、11 日退房，广州住宿共 860 元，车票 430 元。请用已有订单帮我准备报销。</textarea>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="start">分析并准备草稿</button>
+            <button class="btn sub" id="refresh">刷新任务与草稿</button>
+          </div>
+          <p class="caption">模型模式负责提取与澄清；金额、权限和提交状态始终由业务服务校验。固定流程模式不会调用大模型。</p>
+          <div class="divider" id="workflow" style="display:none">
+            <div class="row"><h3>当前任务</h3><span class="pill" id="workflow-status"></span></div>
+            <div class="muted" id="workflow-detail"></div>
+            <div id="clarification" style="display:none;margin-top:10px">
+              <p class="caption">勾选下方本人订单，并补充需要的业务字段。</p>
+              <div class="fieldrow">
+                <div><label class="lbl" for="resume-start">开始日期</label><input id="resume-start" type="date"></div>
+                <div><label class="lbl" for="resume-end">结束日期</label><input id="resume-end" type="date"></div>
+              </div>
+              <div style="margin-top:10px"><label class="lbl" for="resume-city">目的地</label><input id="resume-city" type="text" placeholder="例如：广州"></div>
+              <div style="margin-top:10px"><button class="btn sub" id="resume">使用补充信息继续任务</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <header><h2>本人的订单</h2><span class="pill flat">服务端身份过滤</span></header>
+          <div id="orders" class="empty">选择员工身份后加载本人订单。</div>
+          <div class="fieldrow" style="margin-top:12px">
+            <div><label class="lbl" for="cost-center">本次成本中心</label><select id="cost-center"><option value="">使用已确认偏好或稍后补充</option></select></div>
+            <div><label class="lbl" for="notes">业务备注</label><input id="notes" type="text" placeholder="可选备注" maxlength="500"></div>
+          </div>
+          <div style="margin-top:12px"><button class="btn sub" id="create-draft">用勾选订单创建草稿</button></div>
+          <p class="caption">这条入口直接验证业务闭环，可在模型服务不可用时使用。</p>
+        </div>
+        <div class="card">
+          <header><h2>制度检索与问答</h2><span class="pill flat">权限先于排序</span></header>
+          <div class="fieldrow">
+            <div><label class="lbl" for="policy-query">检索词</label><input id="policy-query" type="text" value="住宿 车票"></div>
+            <div><label class="lbl" for="policy-date">业务日期</label><input id="policy-date" type="date" value="2026-10-09"></div>
+          </div>
+          <div style="margin-top:10px"><button class="btn sub" id="search">检索适用制度</button></div>
+          <div id="policies" style="margin-top:12px"></div>
+          <div class="divider">
+            <label class="lbl" for="policy-question">业务问题</label>
+            <textarea id="policy-question">广州住宿的报销限额是什么？超额部分如何处理？</textarea>
+            <div style="margin-top:10px"><button class="btn sub" id="policy-answer">依据适用制度回答</button></div>
+            <p class="caption">固定流程模式直接展示匹配条款；模型模式生成带引用的回答，仍需人工核对。</p>
+            <div id="policy-answer-result" style="margin-top:10px"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <header><h2>草稿与申请</h2><span class="pill flat" id="draft-count">0 份</span></header>
+          <div id="drafts" class="empty">暂无草稿。</div>
+        </div>
+        <div class="card">
+          <header><h2>核对与确认</h2><span class="pill flat" id="draft-status">等待草稿</span></header>
+          <div class="pipeline" id="steps"></div>
+          <div id="draft" class="empty" style="margin-top:14px">选择草稿后查看金额、来源和版本。</div>
+          <div id="draft-actions" style="display:none;margin-top:14px">
+            <label class="check"><input type="checkbox" id="checked"><span>我已核对订单、费用和适用制度，同意确认当前显示的草稿版本。</span></label>
+            <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+              <button class="btn" id="confirm">确认当前版本</button>
+              <button class="btn sub" id="submit">提交已确认草稿</button>
+              <button class="btn sub" id="edit">更新成本中心与备注</button>
+            </div>
+            <p class="caption">确认绑定版本和内容摘要。修改草稿会使旧确认失效；重复提交不会重复生成申请。</p>
+          </div>
+        </div>
+        <div class="card">
+          <header><h2>已确认偏好</h2><span class="pill flat">跨任务复用</span></header>
+          <p class="muted">成本中心偏好可跨任务复用，本次明确输入优先。</p>
+          <div id="preferences" class="caption">暂无已确认偏好。</div>
+          <div class="row" style="margin-top:12px;gap:8px">
+            <button class="btn sub tiny" id="save-pref">保存为偏好</button>
+            <button class="btn sub tiny" id="delete-pref">删除偏好</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 orchestration -->
+  <section class="view" data-view="orchestration">
+    <div class="grid g2">
+      <div class="card">
+        <header><h2>LangGraph 状态图</h2><span class="pill good">真实 StateGraph</span></header>
+        <div class="timeline" id="graph-timeline"></div>
+        <div class="divider">
+          <div class="legend">
+            <span><i style="background:var(--good)"></i>已完成</span>
+            <span><i style="background:var(--warn)"></i>等待人工</span>
+            <span><i style="background:var(--accent)"></i>执行中</span>
+            <span><i style="background:#cfd8e4"></i>未开始</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <header><h2>运行进度</h2><span class="pill flat" id="stream-state">未连接</span></header>
+        <div class="timeline" id="stream"></div>
+        <p class="caption">服务端以 SSE 推送阶段事件；页面不轮询，断线自动重连。</p>
+      </div>
+    </div>
+    <div class="card">
+      <header><h2>工具调用与检查点</h2><span class="pill flat" id="tool-count">0 次</span></header>
+      <table class="tbl"><thead><tr><th style="width:60px">#</th><th style="width:220px">MCP 工具</th><th style="width:90px">耗时</th><th>说明</th></tr></thead><tbody id="tool-events"></tbody></table>
+      <div class="divider">
+        <details><summary>查看当前任务持久记录</summary><pre class="json" id="workflow-json" style="margin-top:10px"></pre></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 agents -->
+  <section class="view" data-view="agents">
+    <div class="card">
+      <header><h2>多角色只读分析</h2><span class="pill">不产生业务写入</span></header>
+      <p class="muted">订单核对、条款检索与确定性核算由三个受限角色分别完成，结论交叉检查后返回。</p>
+      <label class="lbl" for="agent-message" style="margin-top:12px">分析任务</label>
+      <textarea id="agent-message">我于 2026-10-09 至 2026-10-11 去广州出差，请处理 alice-hotel-001 和 alice-train-001，成本中心 CC-ALPHA-OPS。</textarea>
+      <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px">
+        <button class="btn" id="agent-run">运行多角色分析</button>
+        <button class="btn sub" id="plan-run">查看规划轨迹</button>
+      </div>
+      <p class="caption">规划循环只允许查询与核算工具；任何角色都不能创建、确认或提交草稿。</p>
+    </div>
+    <div id="agent-result"></div>
+  </section>
+
+  <!-- 05 evaluation -->
+  <section class="view" data-view="evaluation">
+    <div class="grid g2">
+      <div class="card">
+        <header><h2>制度检索召回</h2><span class="pill flat">权限过滤后排序</span></header>
+        <table class="tbl"><thead><tr><th>配置</th><th style="width:150px">Recall@3</th><th style="width:150px">Recall@5</th><th style="width:70px">越权</th></tr></thead><tbody id="retrieval-table"></tbody></table>
+        <p class="caption">候选集先由结构化过滤收窄，再进入排序；三组配置的越权泄漏均为 0。</p>
+      </div>
+      <div class="card">
+        <header><h2>字段抽取质量</h2><span class="pill flat">27 条标注用例</span></header>
+        <div class="stack" id="model-eval"></div>
+        <p class="caption">评测调用与线上相同的 <code>HttpExtractor</code>，可作为 CI 阈值拦住质量退化。</p>
+      </div>
+    </div>
+    <div class="card">
+      <header><h2>只读规划边界</h2><span class="pill good">写入拦截</span></header>
+      <div class="stack" id="planner-eval"></div>
+      <div class="divider">
+        <details><summary>查看评测原始记录</summary><pre class="json" id="eval-json" style="margin-top:10px"></pre></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 observability -->
+  <section class="view" data-view="observability">
+    <div class="metrics" id="obs-kpi"></div>
+    <div class="grid g2" style="margin-top:18px">
+      <div class="card">
+        <header><h2>运行 trace</h2><span class="pill flat" id="trace-spans">0 span</span></header>
+        <div class="gantt" id="trace-gantt"></div>
+        <div class="divider">
+          <div class="legend">
+            <span><i style="background:#5b7cf0"></i>工具</span>
+            <span><i style="background:#a66813"></i>模型</span>
+            <span><i style="background:var(--good)"></i>编排</span>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <header><h2>阶段耗时与 token 成本</h2><span class="pill flat" id="cost-pill">—</span></header>
+        <div class="stack" id="stage-ms"></div>
+        <div class="divider">
+          <h3>模型用量</h3>
+          <div class="stack" id="usage"></div>
+          <p class="caption">未返回用量的调用单独计数，不按零计价。</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <header><h2>Prometheus 指标</h2><span class="pill flat">/metrics</span></header>
+      <pre class="json" id="metrics-view">加载中…</pre>
+      <p class="caption">计数器与直方图由运行路径直接累加，可直接被 Prometheus 抓取。</p>
+    </div>
+  </section>
+
+  <!-- 07 audit -->
+  <section class="view" data-view="audit">
+    <div class="grid g2">
+      <div class="card">
+        <header><h2>审计事件流</h2><span class="pill flat" id="audit-count">0 条</span></header>
+        <div class="scroll" id="audit-list"></div>
+        <p class="caption">每次创建、确认与提交都写入审计事件，与业务写操作在同一事务内。</p>
+      </div>
+      <div class="card">
+        <header><h2>服务契约</h2><span class="pill flat">OpenAPI</span></header>
+        <div class="stack" id="contract"></div>
+        <div class="divider">
+          <h3>健康检查</h3>
+          <pre class="json" id="health-view">加载中…</pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="muted" style="margin-top:26px">
+    EnterpriseFlow · 提交生成带版本与内容摘要的申请记录，并写入审计事件 · 内置数据集为合成数据
+  </footer>
+</main>
+</div>
+<script src="./console.js"></script>
+</body>
+</html>

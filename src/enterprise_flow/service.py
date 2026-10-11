@@ -386,10 +386,33 @@ class EnterpriseService:
     def list_runs(self, principal):
         with self.database.transaction() as connection:
             self._principal(connection, principal)
-            return [json.loads(row[0]) for row in connection.execute("SELECT record_json FROM runs WHERE owner_id=? AND tenant_id=? LIMIT 50", (principal.user_id, principal.tenant_id))]
+            rows = connection.execute("SELECT record_json FROM runs WHERE owner_id=? AND tenant_id=? ORDER BY rowid DESC LIMIT 50", (principal.user_id, principal.tenant_id)).fetchall()
+            return [json.loads(row[0]) for row in rows]
+
+    def list_events(self, principal, limit: int = 50):
+        """Audit trail for one employee; every business write already recorded an event."""
+        if type(limit) is not int or not 1 <= limit <= 200:
+            raise DomainError("invalid_limit", "审计条数需要 1–200。")
+        with self.database.transaction() as connection:
+            self._principal(connection, principal)
+            rows = connection.execute("SELECT action,resource_id,details_json,at_utc FROM events WHERE owner_id=? ORDER BY event_id DESC LIMIT ?", (principal.user_id, limit)).fetchall()
+        return [{"action": row["action"], "resource_id": row["resource_id"], "details": json.loads(row["details_json"]), "at_utc": row["at_utc"]} for row in rows]
+
+    def dashboard(self, principal):
+        """Counts the console shows. They are read back from the business tables, never cached."""
+        with self.database.transaction() as connection:
+            self._principal(connection, principal)
+            runs = connection.execute("SELECT COUNT(*) AS n FROM runs WHERE owner_id=? AND tenant_id=?", (principal.user_id, principal.tenant_id)).fetchone()["n"]
+            drafts = connection.execute("SELECT COUNT(*) AS n FROM drafts WHERE owner_id=? AND tenant_id=?", (principal.user_id, principal.tenant_id)).fetchone()["n"]
+            submissions = connection.execute("SELECT COUNT(*) AS n FROM submissions WHERE owner_id=? AND tenant_id=?", (principal.user_id, principal.tenant_id)).fetchone()["n"]
+        pending = 0
+        for record in self.list_runs(principal):
+            if record.get("status") in {"waiting_fields", "failed", "interrupted"}:
+                pending += 1
+        return {"runs": runs, "drafts": drafts, "submissions": submissions, "pending_human": pending}
 
     def update_run(self, principal, run_id, **changes):
-        if set(changes) - {"status", "stage", "draft_id", "result", "error", "questions", "fields"}:
+        if set(changes) - {"status", "stage", "draft_id", "result", "error", "questions", "fields", "trace"}:
             raise DomainError("invalid_run_update", "不能修改任务身份或初始输入。")
         with self.database.transaction(write=True) as connection:
             record = json.loads(self._run_row(connection, principal, run_id)["record_json"])

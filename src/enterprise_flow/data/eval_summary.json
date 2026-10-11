@@ -1,0 +1,87 @@
+{
+  "sources": [
+    "results/retrieval_eval.json",
+    "results/model_eval.json",
+    "results/agent_layer_benchmark.json"
+  ],
+  "retrieval": [
+    {
+      "label": "A. 关键词基线（结构化过滤 + 字符命中排序）",
+      "mode": "keyword",
+      "queries": 226,
+      "recall_at1": 0.0044,
+      "recall_at3": 0.7301,
+      "recall_at5": 0.8982,
+      "leakage": 0,
+      "scoped_pool_p50": 34.0,
+      "scoped_pool_max": 52,
+      "latency_p50_ms": 224.94,
+      "store": "none",
+      "embedder": "keyword-only",
+      "reranker": "none"
+    },
+    {
+      "label": "B. 混合检索（hash n-gram 编码器，链路自证）",
+      "mode": "hybrid",
+      "queries": 226,
+      "recall_at1": 0.0133,
+      "recall_at3": 0.7699,
+      "recall_at5": 0.885,
+      "leakage": 0,
+      "scoped_pool_p50": 34.0,
+      "scoped_pool_max": 52,
+      "latency_p50_ms": 224.23,
+      "store": "local:faiss-flat-ip",
+      "embedder": "hash-ngram",
+      "reranker": "none"
+    }
+  ],
+  "model": [
+    {
+      "label": "字段 Recall",
+      "value": "0.896",
+      "note": "27 条标注用例 · 48 个参考字段"
+    },
+    {
+      "label": "字段 Precision",
+      "value": "0.956",
+      "note": "幻觉字段 2 个 · 越权字段 2 个"
+    },
+    {
+      "label": "整例完全匹配",
+      "value": "20/27",
+      "note": "应弃答 4 条，实际弃答 4 条"
+    },
+    {
+      "label": "覆盖组别",
+      "value": "9 组",
+      "note": "abstain、adversarial-identity、format-noise、ids-explicit、implicit-absent、injection、multiturn、noise、partial"
+    }
+  ],
+  "planner": [
+    {
+      "label": "只读规划循环",
+      "value": "30 次全部 goal_satisfied",
+      "note": "每次 3 次工具调用 · P50 555.71ms / P95 676.71ms",
+      "good": true
+    },
+    {
+      "label": "写入工具拦截",
+      "value": "30 次全部 blocked_tool",
+      "note": "提议工具 submit_expense · 实际执行工具调用 0 次",
+      "good": true
+    },
+    {
+      "label": "多角色协作",
+      "value": "20 次 · 3 个角色",
+      "note": "每次 7 次工具调用 · P50 918.6ms / P95 1122.26ms",
+      "good": true
+    },
+    {
+      "label": "业务写入计数",
+      "value": "0 草稿 / 0 确认 / 0 提交",
+      "note": "三轮共 80 次运行后业务表无新增",
+      "good": true
+    }
+  ]
+}

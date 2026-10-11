@@ -7,6 +7,7 @@ from pathlib import Path
 
 PACKAGE_DIR = Path(__file__).resolve().parent
 PACKAGED_DATA_DIR = PACKAGE_DIR / "data"
+WEB_DIR = PACKAGE_DIR / "web"
 PROJECT_ROOT = PACKAGE_DIR.parents[1]
 DATA_DIR = PROJECT_ROOT / "data" if (PROJECT_ROOT / "pyproject.toml").is_file() else PACKAGED_DATA_DIR
 DEFAULT_DB_PATH = Path(os.environ.get("ENTERPRISE_DB_PATH", str(Path.cwd() / "runs" / "enterprise.sqlite"))).expanduser()
@@ -19,6 +20,16 @@ def data_path(name: str) -> Path:
     path = DATA_DIR / name
     if not path.is_file():
         raise FileNotFoundError(f"Bundled fixture is missing: {name}")
+    return path
+
+
+def web_path(name: str) -> Path:
+    """Return a bundled console asset shipped inside the package."""
+    if not name or Path(name).name != name or "/" in name or "\\" in name:
+        raise ValueError("Web asset name must be a single filename")
+    path = WEB_DIR / name
+    if not path.is_file():
+        raise FileNotFoundError(f"Bundled web asset is missing: {name}")
     return path
 
 

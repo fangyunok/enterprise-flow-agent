@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "enterprise-flow-agent"
-version = "0.2.0"
-description = "Stateful enterprise workflow orchestration with LangGraph, MCP, and transactional execution"
+version = "0.3.0"
+description = "Stateful enterprise workflow orchestration with LangGraph, MCP, human approval and transactional execution"
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
@@ -47,4 +47,4 @@ Issues = "https://github.com/fangyunok/enterprise-flow-agent/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-enterprise_flow = ["data/*.json"]
+enterprise_flow = ["data/*.json", "web/*.html", "web/*.css", "web/*.js"]

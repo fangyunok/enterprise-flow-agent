@@ -130,14 +130,25 @@ def current_tracer() -> ExecutionTracer | None:
 
 
 @contextmanager
-def trace_run(run_id: str) -> Iterator[ExecutionTracer]:
-    """Attach a tracer to the current context for the duration of the block."""
-    tracer = ExecutionTracer(run_id)
+def bind_tracer(tracer: ExecutionTracer) -> Iterator[ExecutionTracer]:
+    """Attach an existing tracer to the current context.
+
+    A workflow run resumes several times; binding the same tracer keeps one continuous
+    span list for the whole run instead of one list per resume.
+    """
     token = _ACTIVE.set(tracer)
     try:
         yield tracer
     finally:
         _ACTIVE.reset(token)
+
+
+@contextmanager
+def trace_run(run_id: str, tracer: ExecutionTracer | None = None) -> Iterator[ExecutionTracer]:
+    """Attach a tracer to the current context for the duration of the block."""
+    tracer = tracer or ExecutionTracer(run_id)
+    with bind_tracer(tracer):
+        yield tracer
 
 
 @contextmanager
@@ -157,3 +168,65 @@ def estimate_cost(model: str, input_tokens: int, output_tokens: int) -> float | 
     if not rate:
         return None
     return round((input_tokens * rate[0] + output_tokens * rate[1]) / 1_000_000, 6)
+
+
+class MetricsRegistry:
+    """Process-local counters and histograms exposed as Prometheus text.
+
+    Deliberately dependency-free: the scrape endpoint has to work in the base install,
+    so the registry keeps bounded buckets in memory instead of pulling a client library.
+    """
+
+    def __init__(self, max_samples: int = 1000) -> None:
+        self.max_samples = max_samples
+        self._counters: dict[tuple[str, str], float] = {}
+        self._samples: dict[tuple[str, str], list[float]] = {}
+
+    def inc(self, name: str, labels: dict[str, Any] | None = None, value: float = 1) -> None:
+        key = (name, self._fmt(labels))
+        self._counters[key] = self._counters.get(key, 0.0) + value
+
+    def observe(self, name: str, value: float, labels: dict[str, Any] | None = None) -> None:
+        key = (name, self._fmt(labels))
+        bucket = self._samples.setdefault(key, [])
+        bucket.append(float(value))
+        if len(bucket) > self.max_samples:
+            del bucket[0]
+
+    @staticmethod
+    def _fmt(labels: dict[str, Any] | None) -> str:
+        if not labels:
+            return ""
+        return ",".join(f'{key}="{str(value).replace(chr(34), chr(39))}"' for key, value in sorted(labels.items()))
+
+    @staticmethod
+    def _quantile(values: list[float], q: float) -> float:
+        ordered = sorted(values)
+        if not ordered:
+            return 0.0
+        index = min(len(ordered) - 1, max(0, int(round(q * (len(ordered) - 1)))))
+        return round(ordered[index], 3)
+
+    def render(self, prefix: str = "enterpriseflow") -> str:
+        """Prometheus text exposition format, one family per metric name."""
+        lines: list[str] = []
+        for (name, labelset) in sorted(self._counters):
+            key = f"{prefix}_{name}"
+            lines.append(f"# TYPE {key} counter")
+            lines.append(f"{key}{{{labelset}}} {self._counters[(name, labelset)]:g}" if labelset else f"{key} {self._counters[(name, labelset)]:g}")
+        for (name, labelset) in sorted(self._samples):
+            samples = self._samples[(name, labelset)]
+            key = f"{prefix}_{name}"
+            lines.append(f"# TYPE {key} summary")
+            for quantile in (0.5, 0.95):
+                suffix = f",quantile=\"{quantile}\"" if labelset else f"quantile=\"{quantile}\""
+                body = f"{labelset}{suffix}" if labelset else suffix
+                lines.append(f"{key}{{{body}}} {self._quantile(samples, quantile):g}")
+            total = round(sum(samples), 3)
+            count_label = f"{labelset},count=\"{len(samples)}\"" if labelset else f"count=\"{len(samples)}\""
+            lines.append(f"{key}_sum {total:g}")
+            lines.append(f"{key}_count{{{count_label}}} {len(samples)}")
+        return "\n".join(lines) + ("\n" if lines else "")
+
+
+METRICS = MetricsRegistry()

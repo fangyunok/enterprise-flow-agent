@@ -1,14 +1,23 @@
 # 验证记录
 
-日期：2026-10-04。项目版本：0.2.0。
+日期：2026-10-04（0.2.0），2026-10-11 增补 0.3.0 交付与控制台部分。项目当前版本：0.3.0。
 
-## 已验证
+## 0.3.0 增补的验证
+
+- **控制台资产外置**：`src/enterprise_flow/web/` 下的 `index.html`、`console.css`、`console.js` 作为包资产随 wheel 发布，`webapp.py` 只负责加载与注入模式标签。CI 的 wheel 校验把 `.html` / `.css` / `.js` 与 `.py` / `.json` 一起逐字节比对源码树。
+- **真实端口上的控制台冒烟**：`scripts/smoke_console.py` 在临时端口启动真实 uvicorn 进程，逐项检查页面与模式标签注入、资产 MIME 类型、登录与身份过滤、草稿金额、审批恢复、重复提交返回同一编号、跨恢复累计的 trace span、Prometheus 指标、审计事件、打包的评测摘要、多角色与规划层的只读性、租户隔离，以及 SSE 事件流的 `data:` 帧。
+- **指标端点**：`/api/metrics`（控制台）与 `/metrics`（FastAPI）输出 Prometheus 文本，指标由运行路径直接累加，不引入客户端库。CI 校验 FastAPI 契约的路径集合包含 `/metrics`，且该端点返回 `text/plain`。
+- **SDK 闭环**：`tests/test_client.py` 的 7 项测试在真实端口上跑通登录 → 范围受控读取 → 建草稿 → 确认 → 提交 → 幂等重放，`approve` 后断言工具调用不少于 5 次且 trace span 不少于 5 个；未登录读取必须返回 `authentication_required` / 401。客户端只用标准库实现，测试里直接断言模块命名空间中不出现 `httpx` 或 `requests`。
+- **评测摘要不漂移**：`scripts/build_eval_summary.py` 由 `results/` 重新生成 `src/enterprise_flow/data/eval_summary.json`，CI 用 `git diff --exit-code` 拦住漂移，控制台展示的数字始终与提交在仓库里的原始记录一致。
+- **交付形态**：`scripts/build_site_bundle.py` 产出 `dist/site`（入口 + 与源码逐字节一致的包副本 + 最小依赖清单），用于发布只有单端口 HTTP 服务的环境；另有 Dockerfile（多阶段构建、非 root 运行）与 `docker-compose.yml`（控制台 7861 / API 8000）。
+
+## 已验证（0.2.0 及之前）
 
 - 在独立 Python 3.12 虚拟环境安装了真实 LangGraph 1.2.12、langgraph-checkpoint-sqlite 3.1.1、MCP 2.2.0 和锁定依赖。
 - `doctor --mode fixture` 读取随附数据集，输出 `model_used=false` 记录当前执行模式。
 - 命令行 `demo` 真实运行 MCP 工具和 LangGraph，关闭后重新打开引擎，恢复相同审批暂停点。
 - Alice 示例原始 129000 分、可申请 123000 分、超额 6000 分；确认后创建申请编号，重复恢复返回同一编号。
-- **182 项测试全部通过**：核心业务 20 项、LangGraph/MCP/模型协议 22 项、网页接口 21 项、制度问答 5 项、只读规划 24 项、多角色协作 22 项、检索链路 30 项、可观测性 17 项、API 服务 21 项。本次本机 Windows 运行耗时 268.429 秒，覆盖真实 SQLite 文件检查点与 MCP 进程内传输的全部开销。
+- **182 项测试全部通过**（0.3.0 增至 189 项，新增 SDK 7 项）：核心业务 20 项、LangGraph/MCP/模型协议 22 项、网页接口 21 项、制度问答 5 项、只读规划 24 项、多角色协作 22 项、检索链路 30 项、可观测性 17 项、API 服务 21 项、集成 SDK 7 项。本次本机 Windows 运行耗时 268.429 秒，覆盖真实 SQLite 文件检查点与 MCP 进程内传输的全部开销。
 - 只读 Agent 层在本机连续运行 30 次规划 + 30 次越权阻断 + 20 次多角色协作后，`drafts`、`confirmations`、`submissions` 三张表仍为 0 行；规划 3 次工具调用 / 上下文字符 1093，多角色协作 7 次工具调用，20 次运行得到同一个 `content_digest`。原始数据见 `results/agent_layer_benchmark.json`，脚本为 `scripts/benchmark_agent_layer.py`。
 - 最终 wheel 在源码目录外的新虚拟环境中安装，通过打包数据读取、真实离线流程及 HTTP 页面检查；登录 Alice 后调用真实本地只读制度问答接口，返回授权条款预览和引用。
 - wheel 内全部 Python 源码与种子 JSON 和当前 `src/enterprise_flow` 文件逐字节一致，包含最后的网页修改，并直接以独立安装包完成验证。

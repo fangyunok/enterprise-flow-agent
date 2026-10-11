@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+import time
 from pathlib import Path
 from typing import Any, TypedDict
 from uuid import uuid4
@@ -19,6 +20,7 @@ from langgraph.types import Command, interrupt
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .model import Extractor, ModelError, TripFields, create_extractor
+from .observability import METRICS, trace_run, traced
 from .service import DomainError, EnterpriseService, Principal
 from .tools import ToolGateway
 
@@ -55,6 +57,7 @@ class WorkflowEngine:
         self.mode = mode
         self.extractor = extractor
         self._locks: dict[str, asyncio.Lock] = {}
+        self._tracers: dict[str, Any] = {}
         self._capacity = asyncio.Semaphore(4)
         self._context: Any = None
         self.graph: Any = None
@@ -109,7 +112,12 @@ class WorkflowEngine:
         return Principal(**state["principal"])
 
     async def _call(self, state: WorkflowState, name: str, args: dict[str, Any] | None = None) -> tuple[Any, list[dict[str, Any]]]:
-        result, event = await ToolGateway(self.service, self._principal(state)).call(name, args)
+        with traced(f"tool.{name}", "tool") as span:
+            result, event = await ToolGateway(self.service, self._principal(state)).call(name, args)
+            if span is not None:
+                span.detail.update({"ok": event["ok"], "duration_ms": event["duration_ms"]})
+        METRICS.inc("tool_calls_total", {"tool": name})
+        METRICS.observe("tool_duration_ms", event["duration_ms"], {"tool": name})
         return result, state.get("tool_events", []) + [event]
 
     def _build_graph(self) -> StateGraph:
@@ -134,7 +142,11 @@ class WorkflowEngine:
         return builder
 
     async def _extract(self, state: WorkflowState) -> dict[str, Any]:
-        extraction = await self.extractor.extract(state["message"])
+        with traced("model.extract", "model") as span:
+            extraction = await self.extractor.extract(state["message"])
+            if span is not None:
+                span.detail.update({"mode": extraction.mode, "model_used": extraction.model_used})
+        METRICS.inc("model_calls_total", {"mode": extraction.mode, "used": str(bool(extraction.model_used))})
         return {"fields": extraction.fields.model_dump(exclude_none=True), "model_used": extraction.model_used,
                 "model_usage": {**extraction.usage, "mode": extraction.mode, "duration_ms": extraction.duration_ms},
                 "stage": "collect", "status": "running"}
@@ -205,6 +217,7 @@ class WorkflowEngine:
         assert draft is not None
         submission, events = await self._call(state, "submit_expense", {"draft_id": draft["draft_id"],
             "expected_version": draft["version"], "idempotency_key": "workflow-" + state["run_id"]})
+        METRICS.inc("submissions_total", {"tenant_id": self._principal(state).tenant_id})
         return {"submission": submission, "draft": self.service.get_draft(self._principal(state), draft["draft_id"]),
                 "tool_events": events, "stage": "submitted", "status": "submitted"}
 
@@ -275,22 +288,36 @@ class WorkflowEngine:
             return await self._invoke(principal, run_id, Command(resume=value))
 
     async def _invoke(self, principal: Principal, run_id: str, value: Any) -> dict[str, Any]:
-        try:
-            async with self._capacity:
-                await asyncio.wait_for(self.graph.ainvoke(value, self._config(run_id)), timeout=120)
-        except (DomainError, ModelError, TimeoutError) as exc:
-            error = {"code": exc.code if isinstance(exc, DomainError) else "model_error" if isinstance(exc, ModelError) else "workflow_timeout",
-                     "message": str(exc) if not isinstance(exc, TimeoutError) else "Workflow execution timed out"}
-            self.service.update_run(principal, run_id, status="failed", error=error)
-            return await self.get(principal, run_id, failed_error=error)
-        except asyncio.CancelledError:
-            self.service.update_run(principal, run_id, status="interrupted", error={"code": "execution_interrupted", "message": "Execution interrupted; retry the saved step"})
-            raise
-        except Exception:
-            error = {"code": "execution_error", "message": "Workflow execution failed; retry the saved step"}
-            self.service.update_run(principal, run_id, status="failed", error=error)
-            return await self.get(principal, run_id, failed_error=error)
-        return await self.get(principal, run_id, persist=True)
+        started = time.perf_counter()
+        # One tracer per run: a resumed run keeps the spans it recorded before the pause.
+        tracer = self._tracers.get(run_id)
+        if tracer is None:
+            from .observability import ExecutionTracer
+            tracer = self._tracers[run_id] = ExecutionTracer(run_id)
+        with trace_run(run_id, tracer):
+            try:
+                async with self._capacity:
+                    await asyncio.wait_for(self.graph.ainvoke(value, self._config(run_id)), timeout=120)
+            except (DomainError, ModelError, TimeoutError) as exc:
+                error = {"code": exc.code if isinstance(exc, DomainError) else "model_error" if isinstance(exc, ModelError) else "workflow_timeout",
+                         "message": str(exc) if not isinstance(exc, TimeoutError) else "Workflow execution timed out"}
+                self.service.update_run(principal, run_id, status="failed", error=error)
+                outcome, failure = await self.get(principal, run_id, failed_error=error), error["code"]
+            except asyncio.CancelledError:
+                self.service.update_run(principal, run_id, status="interrupted", error={"code": "execution_interrupted", "message": "Execution interrupted; retry the saved step"})
+                raise
+            except Exception:
+                error = {"code": "execution_error", "message": "Workflow execution failed; retry the saved step"}
+                self.service.update_run(principal, run_id, status="failed", error=error)
+                outcome, failure = await self.get(principal, run_id, failed_error=error), error["code"]
+            else:
+                outcome, failure = await self.get(principal, run_id, persist=True), None
+            tracer.set_attributes(status=outcome.get("status"), stage=outcome.get("stage"), mode=self.mode)
+            # The trace is stored with the run so a restart can still explain a past decision.
+            self.service.update_run(principal, run_id, trace=tracer.summary())
+        METRICS.inc("runs_total", {"status": str(outcome.get("status")), "mode": self.mode, "failure": failure or ""})
+        METRICS.observe("run_duration_ms", round((time.perf_counter() - started) * 1000), {"mode": self.mode})
+        return outcome
 
     @staticmethod
     def _pending(snapshot: Any) -> dict[str, Any] | None:

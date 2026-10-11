@@ -23,9 +23,10 @@ from typing import Any, AsyncIterator
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from starlette.responses import PlainTextResponse
 
 from .model import FixtureExtractor, HttpExtractor, ModelError
-from .observability import ExecutionTracer, current_tracer, traced
+from .observability import ExecutionTracer, METRICS, current_tracer, traced
 from .schemas import Principal
 from .service import DomainError, EnterpriseService
 
@@ -226,6 +227,11 @@ def create_api(settings: ServiceSettings | None = None) -> FastAPI:
             outcome = await engine.resume(principal, run_id, decision)
         return RunHandle(run_id=run_id, status=outcome.get("status", "running"),
                          stage=outcome.get("stage", "collect"))
+
+    @application.get("/metrics", tags=["ops"], include_in_schema=False)
+    async def metrics() -> PlainTextResponse:
+        # Same registry the console exposes: one set of counters for both surfaces.
+        return PlainTextResponse(METRICS.render(), media_type="text/plain; version=0.0.4; charset=utf-8")
 
     @application.get("/traces/{run_id}", tags=["ops"])
     async def trace_of(run_id: str) -> dict[str, Any]:

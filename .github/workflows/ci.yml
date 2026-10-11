@@ -33,8 +33,10 @@ jobs:
           python -m pip install -r requirements.lock.txt
           python -m pip install -e ".[dev,retrieval,api]"
           python -m pip check
-      - name: Run business, MCP, LangGraph, retrieval, and API tests
+      - name: Run business, MCP, LangGraph, retrieval, API, and SDK tests
         run: python -m unittest discover -s tests -v
+      - name: Smoke the console over a real HTTP port
+        run: python scripts/smoke_console.py
       - name: Verify bundled fixtures match source data
         shell: bash
         run: |
@@ -46,6 +48,13 @@ jobs:
           assert source.read_bytes() == packed.read_bytes(), "Source/package fixture drift"
           print("Bundled fixture matches source data")
           PY
+      - name: Verify the packaged evaluation summary matches results
+        shell: bash
+        run: |
+          python scripts/build_eval_summary.py
+          git diff --exit-code -- src/enterprise_flow/data/eval_summary.json
+      - name: Build the publishable console bundle
+        run: python scripts/build_site_bundle.py
       - name: Build distributable wheel
         run: python -m build --wheel
       - name: Test installed wheel outside the checkout
@@ -71,7 +80,7 @@ jobs:
           with zipfile.ZipFile(wheel) as archive:
               package_root = repository / "src" / "enterprise_flow"
               for source in package_root.rglob("*"):
-                  if source.is_file() and source.suffix in {".py", ".json"}:
+                  if source.is_file() and source.suffix in {".py", ".json", ".html", ".css", ".js"}:
                       member = "enterprise_flow/" + source.relative_to(package_root).as_posix()
                       assert archive.read(member) == source.read_bytes(), "Wheel source mismatch: " + member
           with tempfile.TemporaryDirectory() as folder:
@@ -173,7 +182,9 @@ jobs:
                   assert ready, "Installed wheel API service did not start"
                   with urllib.request.urlopen("http://127.0.0.1:8001/openapi.json", timeout=5) as response:
                       contract = json.loads(response.read())
-                  assert sorted(contract["paths"]) == ["/health", "/orders", "/policies", "/traces/{run_id}", "/workflows", "/workflows/{run_id}", "/workflows/{run_id}/resume"]
+                  assert sorted(contract["paths"]) == ["/health", "/metrics", "/orders", "/policies", "/traces/{run_id}", "/workflows", "/workflows/{run_id}", "/workflows/{run_id}/resume"]
+                  with urllib.request.urlopen("http://127.0.0.1:8001/metrics", timeout=5) as response:
+                      assert response.status == 200 and response.headers.get("content-type").startswith("text/plain")
 
                   def api_get(path, expected=200):
                       opener_local = urllib.request.build_opener()

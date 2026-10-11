@@ -14,6 +14,10 @@
 
 截图取自本地实时运行的网页，停在真实的审批暂停点。
 
+**在线控制台（无需安装，直接体验完整闭环）**：<https://enterprise-flow.app.workbuddy.host/>
+
+控制台内置 7 个视图：运行总览、业务工作台、流程编排（含 SSE 实时进度）、多角色分析、检索与评测、可观测性（trace + Prometheus 指标）、审计与接口。线上实例使用 `fixture` 模式，不调用大模型，数据为内置合成数据集。
+
 ## 先看结论
 
 | 问题 | 结论 | 证据 |
@@ -29,7 +33,11 @@
 | 检索后端是否可替换 | 向量库本地 FAISS 与 Milvus 同一套接口，编码器支持本地 sentence-transformers 与 OpenAI 兼容 HTTP 服务，reranker 支持本地交叉编码器与 TEI `/rerank`；未配置模型服务时保持关键词路径 | [GPU 部署](deploy/gpu/README.md) |
 | 模型抽取质量怎么衡量 | 27 条人工标注用例覆盖显式标识、缺失字段、格式噪声、身份伪造与提示注入，输出字段级 P/R/F1、幻觉字段数与弃答率；评测调用与线上相同的 `HttpExtractor` | [模型评测](results/model_eval.md) |
 | 有没有服务化与可观测性 | `serve-api` 提供 FastAPI + OpenAPI 契约、异步任务提交与依赖就绪检查；每次运行记录各阶段决策点、耗时分布与 token 用量，费率由配置注入 | [架构](docs/ARCHITECTURE.md) |
-| 结果是否可验证 | 182 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22 / 检索 30 / 可观测性 17 / API 21）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775) |
+| 运行过程能否实时看到 | 运行阶段以 SSE 推送到控制台，页面不轮询；断线自动重连，终态自动关闭订阅 | [部署与交付](docs/DEPLOYMENT.md) |
+| 指标能否被监控系统抓取 | `/api/metrics` 直接输出 Prometheus 文本：工具调用、运行耗时、模型调用与提交计数，无需引入客户端库 | [部署与交付](docs/DEPLOYMENT.md) |
+| 集成方要怎么接 | `enterprise_flow.client` 提供标准库实现的 SDK，封装会话、错误信封与运行对象；`create_draft → confirm → submit` 三步与页面完全同源 | [源码](src/enterprise_flow/client.py) |
+| 能否一键交付 | 多阶段 Dockerfile 产出非 root 镜像；`docker compose up` 同时起控制台与 API；`scripts/build_site_bundle.py` 产出单端口部署包 | [部署与交付](docs/DEPLOYMENT.md) |
+| 结果是否可验证 | 189 项测试（业务 20 / 编排 22 / 网页 21 / 问答 5 / 只读规划 24 / 多角色 22 / 检索 30 / 可观测性 17 / API 21 / SDK 7）+ Ubuntu·Windows × Python 3.11·3.12 四组 CI 全部通过 + 脱离源码目录的 wheel 安装与 HTTP 检查 | [验证记录](docs/EVALUATION.md) · [CI 运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775) |
 
 ## 五分钟运行
 
@@ -48,7 +56,13 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m enterprise_flow serve --db runs/web.sqlite --mode fixture
 ```
 
-Linux/macOS 使用 `.venv/bin/python` 替换上述解释器路径。打开 `http://127.0.0.1:7861`，登录 Alice，再输入：
+Linux/macOS 使用 `.venv/bin/python` 替换上述解释器路径。已安装 Docker 时也可以跳过虚拟环境：
+
+```bash
+docker compose up --build -d    # 控制台 7861 · API 8000
+```
+
+打开 `http://127.0.0.1:7861`，登录 Alice，再输入：
 > 我于 2026-10-09 至 2026-10-11 去广州出差，请处理 alice-hotel-001 和 alice-train-001，成本中心 CC-ALPHA-OPS。
 
 示例住宿为 860 元、两晚，制度上限每晚 400 元；铁路订单 430 元。草稿显示原始金额 **1290 元**、可申请金额 **1230 元**、超额 **60 元**，并列出条款版本。确认当前草稿后创建申请编号。
@@ -74,9 +88,12 @@ Linux/macOS 使用 `.venv/bin/python` 替换上述解释器路径。打开 `http
 | 多角色协作 | Supervisor + 三个最小权限角色，黑板交接订单范围，结论交叉检查并按 blocking / warning 分级 |
 | 可复现测量 | `scripts/benchmark_agent_layer.py` 输出 P50 / P95、工具调用数与业务写入计数；`evaluate_retrieval.py` 与 `evaluate_model.py` 输出召回、P/R 与逐用例失分原因，脚本内断言与结论同时成立 |
 | 网页与接口 | Starlette 同源写请求保护、签名会话、来源对照和任务恢复；FastAPI 服务提供 OpenAPI 契约、异步任务提交与依赖就绪检查 |
-| 可观测性 | 运行级 trace 记录每个决策点的类别、耗时、状态与明细，按阶段汇总；token 用量与费用按配置费率核算，未返回用量的调用单独计数而非按零计价 |
-| 质量门禁 | 检索与模型评测共用线上代码路径，可作为 CI 阈值拦住质量退化；GPU 一键复现见 [deploy/gpu](deploy/gpu/README.md) |
-| 交付 | 打包数据与锁定依赖、跨系统 CI、脱离源码目录的 wheel 运行与 HTTP 检查；检索与 API 为可选 extras，基础安装保持轻量 |
+| 可观测性 | 运行级 trace 记录每个决策点的类别、耗时、状态与明细，按阶段汇总；跨恢复累计同一次运行的 span；token 用量与费用按配置费率核算，未返回用量的调用单独计数而非按零计价 |
+| 指标暴露 | 计数器与直方图由运行路径直接累加，`/api/metrics` 输出 Prometheus 文本，可直接被抓取 |
+| 流式进度 | 运行阶段以 SSE 推送；控制台订阅而非轮询，终态关闭订阅 |
+| 集成 SDK | `enterprise_flow.client` 用标准库封装会话、错误信封与运行对象，不引入新的第三方依赖 |
+| 质量门禁 | 检索与模型评测共用线上代码路径，可作为 CI 阈值拦住质量退化；评测摘要随包发布并由 CI 校验与 `results/` 一致；GPU 一键复现见 [deploy/gpu](deploy/gpu/README.md) |
+| 交付 | 多阶段 Dockerfile 与非 root 镜像、`docker compose` 一键起控制台与 API、打包数据与锁定依赖、跨系统 CI、脱离源码目录的 wheel 运行与 HTTP 检查；检索与 API 为可选 extras，基础安装保持轻量 |
 
 ```mermaid
 flowchart LR
@@ -125,7 +142,15 @@ $env:ENTERPRISE_RERANK_MODEL = 'BAAI/bge-reranker-base'
 .\.venv\Scripts\python.exe -m build --wheel
 ```
 
-**182 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断、多角色的作用域约束与冲突检测、检索链路的权限边界与降级路径、trace 与成本核算，以及 API 契约与跨身份访问拒绝。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775)。完整验证清单见 [EVALUATION.md](docs/EVALUATION.md)。
+**189 项测试全部通过**，覆盖身份隔离、制度版本、金额计算、旧确认失效、并发及重复提交、真实 MCP 调用、LangGraph 检查点恢复、HTTP 会话、制度问答引用、只读规划循环的预算与越权阻断、多角色的作用域约束与冲突检测、检索链路的权限边界与降级路径、trace 与成本核算、SSE 与指标端点，以及 SDK 在真实端口上的完整闭环。Ubuntu/Windows × Python 3.11/3.12 四组 CI 已全部通过，见 [实际运行记录](https://github.com/fangyunok/enterprise-flow-agent/actions/runs/37192612775)。完整验证清单见 [EVALUATION.md](docs/EVALUATION.md)。
+
+真实端口上的控制台冒烟与部署包构建：
+
+```powershell
+.\.venv\Scripts\python.exe scripts\smoke_console.py        # 真实 HTTP 端口上的控制台闭环
+.\.venv\Scripts\python.exe scripts\build_site_bundle.py    # 产出 dist/site 部署包
+.\.venv\Scripts\python.exe scripts\build_eval_summary.py   # 由 results/ 重生成打包的评测摘要
+```
 
 评测脚本与线上代码同源，可直接作为质量门禁：
 
@@ -154,6 +179,7 @@ $env:ENTERPRISE_RERANK_MODEL = 'BAAI/bge-reranker-base'
 - **服务型存储**：业务后端迁移到服务型数据库，检查点接分布式存储，编排进程水平扩展。
 - **真实模型回归**：把字段级 P/R 与越权阻断率设为 CI 阈值，模型或提示词变更导致质量退化时直接拦住。
 - **流程扩展**：在同一工具与事务边界上复用采购、资产领用等更多业务流程。
+- **审批链与集成**：在版本确认之上叠加多级审批路由与 Webhook 回调，把确认动作接入企业已有的审批系统。
 
 ## 目录与后续阅读
 
@@ -169,21 +195,25 @@ src/enterprise_flow/
   agents.py         Supervisor 多角色协作与交叉检查
   tools.py          身份绑定的 MCP 工具
   workflow.py       LangGraph 编排与恢复
-  observability.py  运行 trace、阶段耗时与 token 成本
-  webapp.py         网页、会话和 HTTP API
+  observability.py  运行 trace、阶段耗时、token 成本与 Prometheus 指标
+  webapp.py         网页、会话、SSE 与 HTTP API
   api.py            FastAPI 服务与 OpenAPI 契约
+  client.py         标准库实现的集成 SDK
   cli.py            seed/demo/plan/collaborate/serve/serve-api/doctor 命令
-  data/             wheel 随附内置数据集
+  data/             wheel 随附内置数据集与评测摘要
+  web/              控制台资产（index.html / console.css / console.js）
 tests/              业务和跨层边界测试
 data/               可阅读的源数据副本
-scripts/            测量与评测脚本（Agent 层、检索、模型抽取）
+scripts/            测量、评测与构建脚本（Agent 层、检索、抽取、部署包、冒烟）
 results/            实测记录（延迟分布、检索召回、抽取 P/R）
 deploy/gpu/         Milvus 与嵌入服务编排、一键评测脚本
-docs/               架构、Agent 层、评测和投递材料
+deploy/site/        单端口发布入口
+docs/               架构、Agent 层、评测、部署和投递材料
 ```
 
 - [架构与失败处理](docs/ARCHITECTURE.md)
 - [Agent 层：只读规划与多角色协作](docs/AGENT_LAYER.md)
+- [部署与交付：容器、wheel 与部署包](docs/DEPLOYMENT.md)
 - [检索评测记录](results/retrieval_eval.md)
 - [模型抽取评测记录](results/model_eval.md)
 - [GPU 部署与一键评测](deploy/gpu/README.md)

@@ -1,0 +1,46 @@
+# One-command local stack: the console on :7861 and the OpenAPI service on :8000.
+# Both containers share a named volume so runs, checkpoints and audit events persist.
+services:
+  console:
+    build: .
+    image: enterprise-flow-agent:0.3.0
+    command: ["python", "-m", "enterprise_flow", "serve", "--host", "0.0.0.0", "--port", "7861", "--mode", "fixture"]
+    environment:
+      ENTERPRISEFLOW_DB: /app/runs/enterprise.sqlite
+      ENTERPRISEFLOW_MODE: fixture
+    ports:
+      - "7861:7861"
+    volumes:
+      - enterprise-runs:/app/runs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:7861/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  api:
+    build: .
+    image: enterprise-flow-agent:0.3.0
+    command: ["python", "-m", "enterprise_flow", "serve-api", "--host", "0.0.0.0", "--port", "8000", "--mode", "fixture"]
+    environment:
+      ENTERPRISEFLOW_DB: /app/runs/api.sqlite
+      ENTERPRISEFLOW_MODE: fixture
+    ports:
+      - "8000:8000"
+    volumes:
+      - enterprise-runs:/app/runs
+    depends_on:
+      console:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  enterprise-runs:

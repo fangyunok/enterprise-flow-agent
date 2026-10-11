@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+dist
+build
+runs
+site
+deploy/gpu
+results
+docs
+tests
+scripts
+.env
+.env.example
+*.sqlite
